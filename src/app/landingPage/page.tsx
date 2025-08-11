@@ -5,8 +5,10 @@ import '../../lib/fontawesome'
 import { faFacebookF, faInstagram, faLinkedinIn, faXTwitter } from "@fortawesome/free-brands-svg-icons"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+// import { useRouter } from "next/navigation"
 
 const LandingPage = () => {
+  // const router = useRouter();
   const [theme, setTheme] = useState("light");
   const [isVisible, setIsVisible] = useState(false);
 
@@ -105,7 +107,7 @@ const LandingPage = () => {
               <Link href="#ai-coach" className="text-slate-700 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition">AI Coach</Link>
               <Link href="#about" className="text-slate-700 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition">About</Link>
               <div className="flex items-center space-x-4">
-                <Link href="#" className="text-slate-700 dark:text-slate-100 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition">Login</Link>
+                <Link href="/login" className="text-slate-700 dark:text-slate-100 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition">Login</Link>
                 <Link href="#cta" className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg">Get Started</Link>
               </div>
             </div>
@@ -148,7 +150,7 @@ const LandingPage = () => {
               > Smart Budgeting.</span>
             </h1>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Plan, track, and optimize your money effortlessly — powered by AI
+              Plan, track, and optimize your money effortlessly - powered by AI
               insights. Your finances, reimagined.
             </p>
             <div
@@ -598,7 +600,7 @@ const LandingPage = () => {
                 freedom.
               </p>
               <Link
-                href="#"
+                href="/signup"
                 className="inline-block px-8 py-4 bg-white text-indigo-600 rounded-lg text-lg font-bold hover:bg-gray-100 transition shadow-xl mb-8"
               >
                 Create a free account

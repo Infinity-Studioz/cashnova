@@ -88,6 +88,7 @@ import {
   faTaxi,
   faStar,
   faStarHalfAlt,
+  faSignOut,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -177,5 +178,6 @@ library.add(
   faCreditCard,
   faTaxi,
   faStar,
-  faStarHalfAlt
+  faStarHalfAlt,
+  faSignOut
 );

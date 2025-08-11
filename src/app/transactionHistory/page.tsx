@@ -3,9 +3,19 @@ import MainNavigation from "../components/MainNavigation"
 import '../../lib/fontawesome'
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useSession } from 'next-auth/react';
+import AuthButtons from "../components/AuthButtons";
 
 const TransactionHistoryPage = () => {
   const router = useRouter();
+
+  const { data: session, status } = useSession();
+
+  if (status === 'loading') return <div>Loading...</div>;
+  if (!session) return <>
+    <div>Please sign in to access your financial activities</div>
+    <AuthButtons />
+  </>;
 
   return (
     <>
@@ -52,7 +62,7 @@ const TransactionHistoryPage = () => {
                 <label
                   htmlFor="dateRange"
                   className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-400"
-                  >
+                >
                   Date Range
                 </label>
                 <select

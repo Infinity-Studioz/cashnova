@@ -4,10 +4,6 @@ import dbConnect from "@/lib/mongodb";
 
 export const authOptions: AuthOptions = {
   providers: [
-    // GoogleProvider({
-    //   clientId: process.env.GOOGLE_CLIENT_ID!,
-    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    // }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -30,7 +26,7 @@ export const authOptions: AuthOptions = {
       if (!user.email) return false;
 
       const client = await dbConnect;
-      const db = client.db(); // optional: pass DB name if needed
+      const db = client.db();
       const users = db.collection("users");
 
       const existingUser = await users.findOne({ email: user.email });
@@ -52,6 +48,11 @@ export const authOptions: AuthOptions = {
         session.user.id = token.sub;
       }
       return session;
+    },
+
+    async redirect({ url, baseUrl }) {
+      // To always send logged-in users to /dashboard
+      return `${baseUrl}/dashboard`;
     },
   },
 };

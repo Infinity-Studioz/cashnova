@@ -1,14 +1,14 @@
-import React from 'react'
+// 'use client'
 import MainNavigation from '../components/MainNavigation'
 import ToggleSwitch from '../components/ToggleSwitch'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faApple, faDropbox, faGoogleDrive } from '@fortawesome/free-brands-svg-icons'
 import { getServerSession } from 'next-auth';
-// import { authOptions } from '../../app/api/auth/[...nextauth]/route';
 import { authOptions } from "@/utils/authOptions";
 import { redirect } from 'next/navigation';
 
 import '../../lib/fontawesome'
+import SignOutButton from '../components/SignOutButton';
 
 const page = async () => {
   const session = await getServerSession(authOptions);
@@ -28,7 +28,7 @@ const page = async () => {
                 Settings & Security
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
-                {session && `Name: ${session.user?.name}`} <br />
+                {/* {session && `Name: ${session.user?.name}`} <br /> */}
                 Manage your account preferences and security 
               </p>
             </div>
@@ -65,10 +65,11 @@ const page = async () => {
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-white">
-                        Toluwani David
+                        {/* Toluwani David */}
+                        {session.user?.name}
                       </h4>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        user@email.com
+                        {session.user?.email}
                       </p>
                     </div>
                     <button
@@ -105,7 +106,7 @@ const page = async () => {
                           Email Address
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          user@email.com
+                          {session.user?.email}
                         </p>
                       </div>
                       <button
@@ -432,6 +433,8 @@ const page = async () => {
                     </label> */}
                     <ToggleSwitch />
                   </div>
+
+                  <SignOutButton />
                 </div>
               </div>
 

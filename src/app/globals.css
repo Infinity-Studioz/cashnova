@@ -1762,6 +1762,37 @@ input[type="number"] {
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+.gradient-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+.gradient-btn:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+.password-toggle {
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #9ca3af;
+  margin: 20px 0;
+}
+.separator::before,
+.separator::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #e5e7eb;
+}
+.separator::before {
+  margin-right: 10px;
+}
+.separator::after {
+  margin-left: 10px;
+}
+
 .feature-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
@@ -1837,4 +1868,3 @@ body {
   color: var(--text-gray-800);
   font-family: Arial, Helvetica, sans-serif;
 }
-

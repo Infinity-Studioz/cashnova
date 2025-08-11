@@ -54,7 +54,7 @@ const AIFinancialCoachPage = () => {
 
   const getAIResponse = (text: string): string => {
     const msg = text.toLowerCase();
-    if (msg.includes('netflix')) return 'Canceling Netflix saves ₦6,000/month — ₦72,000/year. Want me to redirect that to savings?';
+    if (msg.includes('netflix')) return 'Canceling Netflix saves ₦6,000/month - ₦72,000/year. Want me to redirect that to savings?';
     if (msg.includes('save more') || msg.includes('cut cost'))
       return 'Try reducing dining out, cancelling unused subscriptions, and carpooling. That could save ₦30,000+/month.';
     if (msg.includes('spend'))

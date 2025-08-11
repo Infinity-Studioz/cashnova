@@ -5,7 +5,6 @@ import '@fortawesome/fontawesome-svg-core/styles.css';
 import { config } from '@fortawesome/fontawesome-svg-core';
 import { Poppins } from 'next/font/google'
 import '../lib/fontawesome'
-// import { SessionProvider } from "next-auth/react";
 import AuthProvider from './components/AuthProvider';
 config.autoAddCss = false;
 
@@ -46,7 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           {children}
         </AuthProvider>
-        {/* <SessionProvider>{children}</SessionProvider> */}
       </body>
     </html>
   );

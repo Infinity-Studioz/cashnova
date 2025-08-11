@@ -7,13 +7,23 @@ import '../../lib/fontawesome'
 import SpendingTrendsChart from '../components/SpendingTrendsChart ';
 import CategoryBreakdownChart from '../components/CategoryBreakdownChart ';
 import MonthlyComparisonChart from '../components/MonthlyComparisonChart ';
+import { useSession } from 'next-auth/react';
+import AuthButtons from "../components/AuthButtons";
 
 const AnalyticsPage = () => {
   const [range, setRange] = useState("Last 30 days");
   const [selectedPeriod, setSelectedPeriod] = useState('This Month');
+  
+  const { data: session, status } = useSession();
 
   const [activeTab, setActiveTab] = useState(0);
   const tabs = ['Monthly Overview', 'Category Insights', 'Saving Ratio', 'Trends & Forecasts'];
+
+  if (status === 'loading') return <div>Loading...</div>;
+  if (!session) return <>
+    <div>Please sign in to analyze your finances</div>
+    <AuthButtons />
+  </>;
 
   return (
     <>

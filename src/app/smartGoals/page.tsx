@@ -6,10 +6,20 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import '../../lib/fontawesome'
 import NewGoalModal from '../components/NewGoalModal';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import AuthButtons from "../components/AuthButtons";
 
 const SmartGoalsPage = () => {
   const [selectedOption, setSelectedOption] = useState("Active Goals");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { data: session, status } = useSession();
+
+  if (status === 'loading') return <div>Loading...</div>;
+  if (!session) return <>
+    <div>Please sign in to create your budget goals</div>
+    <AuthButtons />
+  </>;
 
   return (
     <>

@@ -3,12 +3,16 @@ import MainNavigation from "../components/MainNavigation"
 import '../../lib/fontawesome'
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useState, useRef, useEffect } from "react";
+import { useSession } from 'next-auth/react';
+import AuthButtons from "../components/AuthButtons";
 
 const AIFinancialCoachPage = () => {
   const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'ai'; time: string }[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
+
+  const { data: session, status } = useSession();
 
   const getTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -54,7 +58,7 @@ const AIFinancialCoachPage = () => {
 
   const getAIResponse = (text: string): string => {
     const msg = text.toLowerCase();
-    if (msg.includes('netflix')) return 'Canceling Netflix saves ₦6,000/month — ₦72,000/year. Want me to redirect that to savings?';
+    if (msg.includes('netflix')) return 'Canceling Netflix saves ₦6,000/month - ₦72,000/year. Want me to redirect that to savings?';
     if (msg.includes('save more') || msg.includes('cut cost'))
       return 'Try reducing dining out, cancelling unused subscriptions, and carpooling. That could save ₦30,000+/month.';
     if (msg.includes('spend'))
@@ -72,6 +76,12 @@ const AIFinancialCoachPage = () => {
     'How much can I save by cutting Netflix?',
     'Create a budget plan for me',
   ];
+
+  if (status === 'loading') return <div>Loading...</div>;
+  if (!session) return <>
+    <div>Please sign in to access AI Coach</div>
+    <AuthButtons />
+  </>;
 
   return (
     <>

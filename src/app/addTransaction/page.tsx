@@ -5,9 +5,18 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import '../../lib/fontawesome'
 // import CheckoutButton from '../components/CheckoutButton'
 import { FundWalletButton } from '../components/FundWalletButton'
+import { useSession } from 'next-auth/react';
+import AuthButtons from '../components/AuthButtons'
 
-const AddTransactionPage = () => {
+export default function AddTransactionPage() {
+  const { data: session, status } = useSession();
   const [checked, setChecked] = useState(false)
+
+  if (status === 'loading') return <p>Loading...</p>;
+  if (!session) return <>
+    <p>You must be signed in</p>
+    <AuthButtons />
+  </>;
 
   return (
     <>
@@ -266,4 +275,9 @@ const AddTransactionPage = () => {
   )
 }
 
-export default AddTransactionPage
+// const AddTransactionPage = () => {
+
+  
+// }
+
+// export default AddTransactionPage
