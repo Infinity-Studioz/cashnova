@@ -4,14 +4,17 @@ import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function SignUp() {
+  const router = useRouter();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Error states
   const [nameError, setNameError] = useState('');
@@ -36,14 +39,17 @@ export default function SignUp() {
   };
 
   // Form validation and submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
-    let isValid = true;
+    // Reset errors
     setNameError('');
     setEmailError('');
     setPasswordError('');
     setConfirmPasswordError('');
+
+    let isValid = true;
 
     // Name validation
     if (fullName.trim().length < 2) {
@@ -69,10 +75,66 @@ export default function SignUp() {
       isValid = false;
     }
 
-    if (isValid) {
-      console.log('Form submitted:', { fullName, email, password });
-      // To be replaced with actual signup logic
-      alert('Account created successfully! (This is a demo)');
+    if (!isValid) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Call registration API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Registration successful - auto sign in
+        const signInResult = await signIn('credentials', {
+          email: email.trim(),
+          password,
+          redirect: false,
+        });
+
+        if (signInResult?.ok) {
+          router.push('/dashboard');
+        } else {
+          // Registration successful but auto-login failed
+          router.push('/login?message=Account created successfully. Please sign in.');
+        }
+      } else {
+        // Handle registration errors
+        if (data.rateLimited) {
+          if (data.blockUntil) {
+            const blockTime = new Date(data.blockUntil).toLocaleTimeString();
+            setEmailError(`Too many registration attempts. Please try again after ${blockTime}.`);
+          } else {
+            const resetTime = new Date(data.resetTime).toLocaleTimeString();
+            setEmailError(`Too many registration attempts. Please try again after ${resetTime}.`);
+          }
+        } else if (data.message === 'User with this email already exists') {
+          setEmailError('An account with this email already exists.');
+        } else if (data.message === 'Invalid email format') {
+          setEmailError('Please enter a valid email address.');
+        } else if (data.message === 'Password must be at least 8 characters long') {
+          setPasswordError('Password must be at least 8 characters long.');
+        } else {
+          setEmailError(data.message || 'Registration failed. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setEmailError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -96,7 +158,8 @@ export default function SignUp() {
           <button
             type="button"
             onClick={() => signIn('google', { callbackUrl: "/dashboard" })}
-            className="w-full flex items-center justify-center space-x-2 border border-gray-200 dark:border-gray-500 bg-gray-50 dark:bg-gray-700 rounded-lg py-3 px-4 hover:bg-gray-100 transition duration-200 mb-6"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center space-x-2 border border-gray-200 dark:border-gray-500 bg-gray-50 dark:bg-gray-700 rounded-lg py-3 px-4 hover:bg-gray-100 transition duration-200 mb-6 disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -122,7 +185,8 @@ export default function SignUp() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200"
+                disabled={isLoading}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200 disabled:opacity-50"
                 placeholder="John Doe"
               />
             </div>
@@ -139,7 +203,8 @@ export default function SignUp() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200"
+                disabled={isLoading}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200 disabled:opacity-50"
                 placeholder="you@example.com"
               />
             </div>
@@ -156,13 +221,15 @@ export default function SignUp() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200 pr-12"
+                disabled={isLoading}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200 pr-12 disabled:opacity-50"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 className="password-toggle absolute text-gray-400 dark:text-gray-300 hover:text-gray-600"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -221,13 +288,15 @@ export default function SignUp() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200 pr-12"
+                disabled={isLoading}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition duration-200 pr-12 disabled:opacity-50"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 className="password-toggle absolute text-gray-400 dark:text-gray-300 hover:text-gray-600"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -268,8 +337,19 @@ export default function SignUp() {
           </div>
 
           {/* Sign Up Button */}
-          <button type="submit" className="gradient-btn w-full py-3 px-4 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition duration-200">
-            Create Account
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="gradient-btn w-full py-3 px-4 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Creating Account...
+              </div>
+            ) : (
+              'Create Account'
+            )}
           </button>
 
           {/* Terms and Privacy */}
