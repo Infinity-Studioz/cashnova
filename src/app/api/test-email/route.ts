@@ -1,3 +1,4 @@
+// src/app/api/test-email/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/emailService';
 

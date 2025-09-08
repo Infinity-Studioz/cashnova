@@ -1,3 +1,4 @@
+// src/app/analytics%26reports/page.tsx
 'use client'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MainNavigation from '../components/MainNavigation'
@@ -81,34 +82,6 @@ const AnalyticsPage = () => {
                   className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg"
                 >
                   Apply
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="bg-white rounded-lg shadow-sm p-4 mb-6 card-shadow dark:bg-gray-800"
-          >
-            <div
-              className="flex flex-col md:flex-row md:items-center md:justify-between"
-            >
-              <div className="mb-4 md:mb-0">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                  Extra Fund Balance
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Your withdrawable funds for your emergency/miscellaneous expenses
-                </p>
-              </div>
-              <div className="flex items-center space-x-5">
-                <h3 className="text-2xl font-bold inline mt-1 text-gray-800 dark:text-white">
-                  $4,250.00
-                </h3>
-
-                <button
-                  className="bg-green-700 hover:bg-primary-dark text-white px-6 py-3 pt-4 rounded-lg"
-                >
-                  Withdraw
                 </button>
               </div>
             </div>

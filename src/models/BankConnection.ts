@@ -1,25 +1,58 @@
-import mongoose, { Schema, Document } from 'mongoose';
+// src/models/BankConnection.ts
+import mongoose, { Schema } from 'mongoose';
+import { IBankConnection, BankConnectionStatus } from '@/types';
 
-export interface IBankConnection extends Document {
-  userId: mongoose.Types.ObjectId;
-  bankName: string;
-  accountNumber: string;
-  accountType: string;
-  linkedAt: Date;
-  status: 'active' | 'inactive' | 'error';
-  lastSync: Date;
-  // add any token or metadata as needed (keep sensitive info secure)
-}
-
-const BankConnectionSchema: Schema = new Schema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  bankName: { type: String, required: true },
-  accountNumber: { type: String, required: true },
-  accountType: { type: String, required: true },
-  linkedAt: { type: Date, default: Date.now },
-  status: { type: String, enum: ['active', 'inactive', 'error'], default: 'active' },
-  lastSync: { type: Date, default: null },
-});
+const BankConnectionSchema: Schema = new Schema(
+  {
+    userId: { 
+      type: String, // Changed from ObjectId to string for consistency
+      required: true,
+      index: true
+    },
+    bankName: { 
+      type: String, 
+      required: true,
+      trim: true,
+      maxlength: 100
+    },
+    accountNumber: { 
+      type: String, 
+      required: true,
+      trim: true,
+      maxlength: 20
+    },
+    accountType: { 
+      type: String, 
+      required: true,
+      trim: true,
+      maxlength: 50
+    },
+    linkedAt: { 
+      type: Date, 
+      default: Date.now,
+      index: true
+    },
+    status: { 
+      type: String, 
+      enum: ['active', 'inactive', 'error'], 
+      default: 'active',
+      index: true
+    },
+    lastSync: { 
+      type: Date, 
+      default: null,
+      index: true
+    }
+  },
+  { 
+    timestamps: true,
+    indexes: [
+      { userId: 1, status: 1 },
+      { userId: 1, bankName: 1 }
+    ]
+  }
+);
 
 export default mongoose.models.BankConnection ||
   mongoose.model<IBankConnection>('BankConnection', BankConnectionSchema);
+

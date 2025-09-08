@@ -1,43 +1,54 @@
-import mongoose from "mongoose";
+// src/models/User.ts
+import mongoose, { Schema } from "mongoose";
+import { IUser, AuthProvider } from '@/types';
 
-const UserSchema = new mongoose.Schema(
+const UserSchema: Schema = new Schema(
   {
     name: { 
       type: String, 
-      required: true 
+      required: true,
+      trim: true,
+      maxlength: 100
     },
     email: { 
       type: String, 
-      unique: true, 
+      unique: true,  // This creates the index - no need for separate UserSchema.index()
       required: true,
       lowercase: true,
-      trim: true
+      trim: true,
+      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ // Basic email validation
     },
-    image: String,
-    // For OAuth providers (Google, etc.)
+    image: {
+      type: String,
+      validate: {
+        validator: function(v: string) {
+          // Basic URL validation if image is provided
+          return !v || /^https?:\/\/.+/.test(v);
+        },
+        message: 'Image must be a valid URL'
+      }
+    },
     provider: {
       type: String,
-      enum: ['google', 'credentials'],
-      default: 'credentials'
+      enum: ['google', 'credentials', 'dual'],
+      default: 'credentials',
+      index: true  // Simple index for provider queries
     },
-    // For email/password authentication
     password: {
       type: String,
-      // Required only for credentials provider
-      required: function(this: any) {
-        return this.provider === 'credentials';
+      required: function(this: IUser) {
+        return this.provider === 'credentials' || this.provider === 'dual';
       },
       minlength: 8
     },
-    // Email verification
     emailVerified: {
       type: Date,
       default: null
     },
-    // User preferences (for future use)
     preferences: {
       currency: {
         type: String,
+        enum: ['NGN', 'USD', 'EUR', 'GBP'],
         default: 'NGN'
       },
       theme: {
@@ -50,25 +61,23 @@ const UserSchema = new mongoose.Schema(
         push: { type: Boolean, default: true }
       }
     },
-    // Account status
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
+      index: true  // Simple index for active user queries
     }
   },
   { 
     timestamps: true,
-    // Ensure we don't accidentally expose password in JSON
     toJSON: {
       transform: function(doc, ret) {
-        delete ret.password;
+        delete ret.password; // Never expose password in JSON
         return ret;
       }
     }
+    // Removed the indexes array since we're using field-level indexing
   }
 );
 
-// Index for faster queries
-UserSchema.index({ email: 1 });
-
-export default mongoose.models.User || mongoose.model("User", UserSchema);
+export default mongoose.models.User || 
+  mongoose.model<IUser>("User", UserSchema);

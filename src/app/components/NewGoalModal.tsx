@@ -3,30 +3,46 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faTimes, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { GoalsService, CreateGoalRequest } from '@/services/goalsService';
+import { Goal } from '@/services/goalsService';
 
 const goalIcons = [
-  'beach.png',
-  'car.png',
-  'home.png',
-  'wedding.png',
-  'graduation-cap.png',
-  'emergency.png',
-  'gift.png',
-  'money-bag.png',
+  { file: 'beach.png', category: 'vacation' },
+  { file: 'car.png', category: 'car_purchase' },
+  { file: 'home.png', category: 'house_deposit' },
+  { file: 'wedding.png', category: 'wedding' },
+  { file: 'graduation-cap.png', category: 'school_fees' },
+  { file: 'emergency.png', category: 'emergency_fund' },
+  { file: 'gift.png', category: 'custom' },
+  { file: 'money-bag.png', category: 'business_capital' },
 ];
 
-export default function NewGoalModal({ isOpen, onClose }) {
-  const modalRef = useRef(null);
+interface NewGoalModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onGoalCreated: (goal: any) => void;
+  editGoal?: Goal
+}
+
+export default function NewGoalModal({ isOpen, onClose, onGoalCreated, editGoal }: NewGoalModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const [goalName, setGoalName] = useState('');
-  const [selectedImage, setSelectedImage] = useState('beach.png');
+  const [selectedImage, setSelectedImage] = useState('emergency.png');
+  const [selectedCategory, setSelectedCategory] = useState<CreateGoalRequest['category']>('emergency_fund');
   const [targetAmount, setTargetAmount] = useState('');
   const [currentAmount, setCurrentAmount] = useState('');
   const [goalDate, setGoalDate] = useState('');
-  const [priority, setPriority] = useState('medium');
-  const [notes, setNotes] = useState('');
+  const [priority, setPriority] = useState<CreateGoalRequest['priority']>('medium');
+  const [description, setDescription] = useState('');
   const [aiSuggestion, setAiSuggestion] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [enableAutoSave, setEnableAutoSave] = useState(false);
+  const [autoSavePercentage, setAutoSavePercentage] = useState(5);
+
+  // Nigerian templates for quick setup
+  const [nigerianTemplates] = useState(GoalsService.getNigerianTemplates());
 
   // Set default goal date 3 months from now
   useEffect(() => {
@@ -39,8 +55,8 @@ export default function NewGoalModal({ isOpen, onClose }) {
 
   // Handle outside click
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         handleClose();
       }
     }
@@ -56,206 +72,469 @@ export default function NewGoalModal({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
-  // Simulate AI suggestion logic
+  // Enhanced AI suggestion with Nigerian context
   useEffect(() => {
-    const amount = parseFloat(targetAmount) || 0;
-    const suggestion = amount * 1.2;
-    setAiSuggestion(
-      `AI Suggestion: Based on your savings rate, we recommend a target of ₦${suggestion.toLocaleString()} in 6 months`
-    );
-  }, [targetAmount]);
+    if (targetAmount && goalDate) {
+      const amount = parseFloat(targetAmount) || 0;
+      const targetDate = new Date(goalDate);
+      const currentDate = new Date();
+      const monthsToGoal = Math.max(1, (targetDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const monthlyAmount = amount / monthsToGoal;
 
-  const handleSubmit = (e) => {
+      // Nigerian salary cycle context
+      const isEndOfMonth = currentDate.getDate() >= 25;
+      const salaryAdvice = isEndOfMonth
+        ? "Perfect timing! Consider contributing now during salary season."
+        : "Plan to contribute around month-end when salaries are typically paid.";
+
+      let categoryAdvice = '';
+      if (selectedCategory === 'emergency_fund') {
+        categoryAdvice = "Emergency funds are crucial for Nigerian economic stability. ";
+      } else if (selectedCategory === 'school_fees') {
+        categoryAdvice = "School fees are due in January and September. ";
+      }
+
+      setAiSuggestion(
+        `${categoryAdvice}Save ₦${Math.round(monthlyAmount).toLocaleString()} monthly over ${Math.round(monthsToGoal)} months. ${salaryAdvice}`
+      );
+    }
+  }, [targetAmount, goalDate, selectedCategory]);
+
+  // Add this useEffect after the existing ones in NewGoalModal:
+  useEffect(() => {
+    if (isOpen && editGoal) {
+      // Pre-populate form for editing
+      setGoalName(editGoal.title);
+      setSelectedCategory(editGoal.category);
+      setTargetAmount(editGoal.targetAmount.toString());
+      setCurrentAmount(editGoal.currentAmount.toString());
+      setGoalDate(editGoal.deadline ? new Date(editGoal.deadline).toISOString().split('T')[0] : '');
+      setPriority(editGoal.priority);
+      setDescription(editGoal.description || '');
+      setEnableAutoSave(editGoal.autoSaveRules?.enabled || false);
+      setAutoSavePercentage(editGoal.autoSaveRules?.percentage || 5);
+
+      // Find matching icon
+      const matchingIcon = goalIcons.find(icon => icon.category === editGoal.category);
+      if (matchingIcon) {
+        setSelectedImage(matchingIcon.file);
+      }
+    }
+  }, [isOpen, editGoal]);
+
+  // Handle template selection
+  const applyTemplate = (template: any) => {
+    setGoalName(template.title);
+    setDescription(template.description);
+    setTargetAmount(template.defaultAmount.toString());
+    setSelectedCategory(template.category);
+    setPriority(template.priority);
+
+    // Find matching icon
+    const matchingIcon = goalIcons.find(icon => icon.category === template.category);
+    if (matchingIcon) {
+      setSelectedImage(matchingIcon.file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Send form data to backend
-    alert('Goal created successfully!');
-    handleClose();
+
+    if (isSubmitting) return;
+
+    // Enhanced validation to match backend requirements
+    if (!goalName.trim()) {
+      alert('Goal name is required');
+      return;
+    }
+
+    if (!targetAmount || isNaN(parseFloat(targetAmount))) {
+      alert('Please enter a valid target amount');
+      return;
+    }
+
+    const targetAmountNum = parseFloat(targetAmount);
+    if (targetAmountNum < 1000) {
+      alert('Minimum goal amount is ₦1,000');
+      return;
+    }
+
+    if (!selectedCategory) {
+      alert('Please select a category');
+      return;
+    }
+
+    // Validate deadline if provided
+    if (goalDate) {
+      const deadlineDate = new Date(goalDate);
+      if (deadlineDate <= new Date()) {
+        alert('Deadline must be in the future');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (editGoal) {
+        // Update existing goal
+        const updateData = {
+          title: goalName.trim(),
+          description: description.trim() || undefined,
+          targetAmount: targetAmountNum,
+          category: selectedCategory,
+          deadline: goalDate || undefined,
+          priority: priority || 'medium',
+          autoSaveRules: enableAutoSave ? {
+            enabled: true,
+            percentage: autoSavePercentage,
+            frequency: 'monthly' as const,
+            minTransactionAmount: 1000
+          } : undefined,
+        };
+
+        const response = await GoalsService.updateGoal(editGoal._id, updateData);
+        onGoalCreated(response);
+      } else {
+        // Create new goal
+        const goalData = {
+          title: goalName.trim(),
+          description: description.trim() || undefined,
+          targetAmount: targetAmountNum,
+          currentAmount: parseFloat(currentAmount) || 0,
+          category: selectedCategory,
+          deadline: goalDate || undefined,
+          priority: priority || 'medium',
+          autoSaveRules: enableAutoSave ? {
+            enabled: true,
+            percentage: autoSavePercentage,
+            frequency: 'monthly' as const,
+            minTransactionAmount: 1000
+          } : undefined,
+          nigerianContext: {
+            isSchoolFeesGoal: selectedCategory === 'school_fees',
+            isEmergencyFund: selectedCategory === 'emergency_fund',
+            isSalaryLinked: ['emergency_fund', 'school_fees', 'rent_advance'].includes(selectedCategory),
+            festiveSeasonBuffer: selectedCategory === 'emergency_fund'
+          }
+        };
+
+        const response = await GoalsService.createGoal(goalData);
+        onGoalCreated(response.goal);
+      }
+
+      handleClose();
+    } catch (error) {
+      console.error('Error with goal:', error);
+
+      if (error instanceof Error) {
+        if (error.message.includes('Validation')) {
+          alert(`Validation Error: ${error.message}`);
+        } else {
+          alert(error.message);
+        }
+      } else {
+        alert(`Failed to ${editGoal ? 'update' : 'create'} goal. Please try again.`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
+    if (isSubmitting) return;
     resetForm();
     onClose();
   };
 
   const resetForm = () => {
     setGoalName('');
-    setSelectedImage('beach.png');
+    setSelectedImage('emergency.png');
+    setSelectedCategory('emergency_fund');
     setTargetAmount('');
     setCurrentAmount('');
     setPriority('medium');
-    setNotes('');
+    setDescription('');
     setAiSuggestion('');
+    setEnableAutoSave(false);
+    setAutoSavePercentage(5);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        backgroundColor: 'rgba(0, 0, 0, 0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backdropFilter: 'blur(4px)',
-      }}
-      className={`fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center transition-all duration-300 ${isOpen ? 'visible opacity-100' : 'invisible opacity-0'
-        }`}
-    >
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center transition-all duration-300 visible opacity-100 backdrop-blur-sm">
       <div
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
       >
         <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-200">
-              Create New Goal
+              {editGoal ? 'Edit Goal' : 'Create New Goal'}
             </h3>
-            <button onClick={handleClose} className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-400">
-              {/* <i className="fas fa-times"></i> */}
+            <button
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-400 disabled:opacity-50"
+            >
               <FontAwesomeIcon icon={faTimes} />
             </button>
           </div>
 
+          {/* Nigerian Templates */}
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Quick Start Templates
+            </h4>
+            <div className="grid grid-cols-2 gap-2">
+              {nigerianTemplates.slice(0, 4).map((template) => (
+                <button
+                  key={template.category}
+                  type="button"
+                  onClick={() => applyTemplate(template)}
+                  className="text-left p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
+                >
+                  <div className="font-medium text-sm text-gray-900 dark:text-gray-200">
+                    {template.title}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    ₦{template.defaultAmount.toLocaleString()}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit}>
-            {/* Goal Name */}
-            <div className="mb-4">
-              <label htmlFor="goalName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Goal Name
-              </label>
-              <input
-                type="text"
-                id="goalName"
-                value={goalName}
-                onChange={(e) => setGoalName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="e.g. Vacation Fund, New Car, etc."
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left Column */}
+              <div className="space-y-4">
+                {/* Goal Name */}
+                <div>
+                  <label htmlFor="goalName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Goal Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="goalName"
+                    value={goalName}
+                    onChange={(e) => setGoalName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="e.g. Emergency Fund, School Fees"
+                    required
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    id="category"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value as CreateGoalRequest['category'])}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    required
+                  >
+                    <option value="emergency_fund">Emergency Fund</option>
+                    <option value="school_fees">School Fees</option>
+                    <option value="rent_advance">Rent Advance</option>
+                    <option value="vacation">Vacation</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="business_capital">Business Capital</option>
+                    <option value="gadget_purchase">Gadget Purchase</option>
+                    <option value="house_deposit">House Deposit</option>
+                    <option value="car_purchase">Car Purchase</option>
+                    <option value="medical_emergency">Medical Emergency</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+
+                {/* Target Amount */}
+                <div>
+                  <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Target Amount (₦) *
+                  </label>
+                  <input
+                    type="number"
+                    id="targetAmount"
+                    value={targetAmount}
+                    onChange={(e) => setTargetAmount(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="100,000"
+                    min="1000"
+                    required
+                  />
+                </div>
+
+                {/* Current Amount */}
+                <div>
+                  <label htmlFor="currentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Already Saved (₦)
+                  </label>
+                  <input
+                    type="number"
+                    id="currentAmount"
+                    value={currentAmount}
+                    onChange={(e) => setCurrentAmount(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                {/* Target Date */}
+                <div>
+                  <label htmlFor="goalDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Target Date
+                  </label>
+                  <input
+                    type="date"
+                    id="goalDate"
+                    value={goalDate}
+                    onChange={(e) => setGoalDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label htmlFor="goalPriority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <select
+                    id="goalPriority"
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as CreateGoalRequest['priority'])}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+
+                {/* Auto-save Settings */}
+                <div>
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="checkbox"
+                      id="enableAutoSave"
+                      checked={enableAutoSave}
+                      onChange={(e) => setEnableAutoSave(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <label htmlFor="enableAutoSave" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Enable Auto-Save
+                    </label>
+                  </div>
+                  {enableAutoSave && (
+                    <div>
+                      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Auto-save percentage
+                      </label>
+                      <input
+                        type="number"
+                        value={autoSavePercentage}
+                        onChange={(e) => setAutoSavePercentage(Math.min(50, Math.max(0.1, parseFloat(e.target.value))))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        min="0.1"
+                        max="50"
+                        step="0.1"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {autoSavePercentage}% of eligible transactions will be automatically saved
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Goal Image Selector */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Goal Image</label>
-              <div className="goal-image-selector grid grid-cols-4 gap-3 mt-2">
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Goal Image</label>
+              <div className="grid grid-cols-4 gap-3">
                 {goalIcons.map((icon) => (
                   <Image
-                    key={icon}
-                    src={`/assets/icons/${icon}`}
-                    alt={icon}
-                    width={100}
-                    height={100}
-                    onClick={() => setSelectedImage(icon)}
-                    className={`w-full h-16 object-contain p-2 rounded-lg border cursor-pointer ${selectedImage === icon
-                        ? 'border-primary ring-2 ring-primary'
-                        : 'border-gray-200 dark:border-gray-300'
+                    key={icon.file}
+                    src={`/assets/icons/${icon.file}`}
+                    alt={icon.category}
+                    width={60}
+                    height={60}
+                    onClick={() => {
+                      setSelectedImage(icon.file);
+                      setSelectedCategory(icon.category as CreateGoalRequest['category']);
+                    }}
+                    className={`w-full h-16 object-contain p-2 rounded-lg border cursor-pointer transition-all ${selectedImage === icon.file
+                      ? 'border-primary ring-2 ring-primary bg-primary/5'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
                       }`}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Amounts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Target Amount (₦)
-                </label>
-                <input
-                  type="number"
-                  id="targetAmount"
-                  value={targetAmount}
-                  onChange={(e) => setTargetAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="500,000"
-                />
-              </div>
-              <div>
-                <label htmlFor="currentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Already Saved (₦)
-                </label>
-                <input
-                  type="number"
-                  id="currentAmount"
-                  value={currentAmount}
-                  onChange={(e) => setCurrentAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="50,000"
-                />
-              </div>
-            </div>
-
-            {/* Date and Priority */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label htmlFor="goalDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Target Date
-                </label>
-                <input
-                  type="date"
-                  id="goalDate"
-                  value={goalDate}
-                  onChange={(e) => setGoalDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label htmlFor="goalPriority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Priority
-                </label>
-                <select
-                  id="goalPriority"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div className="mb-4">
-              <label htmlFor="goalNotes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Notes (Optional)
+            {/* Description */}
+            <div className="mt-6">
+              <label htmlFor="goalDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Description (Optional)
               </label>
               <textarea
-                id="goalNotes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                id="goalDescription"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Any additional details about your goal"
-              ></textarea>
+                maxLength={500}
+              />
             </div>
 
             {/* AI Suggestion */}
-            <div className="bg-blue-50 rounded-lg p-4 mb-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-1">
-                  {/* <i className="fas fa-lightbulb text-blue-500"></i> */}
-                  <FontAwesomeIcon icon={faLightbulb} className='text-blue-500' />
-                </div>
-                <div className="ml-2">
-                  <p className="text-xs text-blue-800 ai-suggestion">{aiSuggestion}</p>
+            {aiSuggestion && (
+              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-1">
+                    <FontAwesomeIcon icon={faLightbulb} className="text-blue-500" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">{aiSuggestion}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Buttons */}
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 mt-8">
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-500 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
+                disabled={isSubmitting}
+                className="px-6 py-2 border border-gray-300 dark:border-gray-500 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                disabled={isSubmitting}
+                className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Create Goal
+
+                {isSubmitting ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                    {editGoal ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  editGoal ? 'Update Goal' : 'Create Goal'
+                )}
               </button>
             </div>
           </form>

@@ -1,47 +1,45 @@
-import mongoose, { Schema, Document } from 'mongoose';
+// src/models/PasswordResetToken.ts
+import mongoose, { Schema } from 'mongoose';
+import { IPasswordResetToken } from '@/types';
 
-export interface IPasswordResetToken extends Document {
-  userId: string;
-  email: string;
-  token: string;
-  expiresAt: Date;
-  used: boolean;
-  createdAt: Date;
-}
-
-const PasswordResetTokenSchema: Schema = new Schema({
-  userId: { 
-    type: String, 
-    required: true 
-  },
-  email: { 
-    type: String, 
-    required: true,
-    lowercase: true 
-  },
-  token: { 
-    type: String, 
-    required: true,
-    unique: true 
-  },
-  expiresAt: { 
-    type: Date, 
-    required: true,
-    // Automatically delete expired tokens after 1 hour
-    expires: 0
-  },
-  used: { 
-    type: Boolean, 
-    default: false 
+const PasswordResetTokenSchema: Schema = new Schema(
+  {
+    userId: { 
+      type: String, 
+      required: true,
+      index: true
+    },
+    email: { 
+      type: String, 
+      required: true,
+      lowercase: true,
+      trim: true,
+      index: true
+    },
+    token: { 
+      type: String, 
+      required: true,
+      unique: true // This creates an index automatically
+    },
+    expiresAt: { 
+      type: Date, 
+      required: true,
+      expires: 0 // TTL index - this is sufficient, no need for additional index
+    },
+    used: { 
+      type: Boolean, 
+      default: false,
+      index: true
+    }
+  }, 
+  { 
+    timestamps: true 
   }
-}, { 
-  timestamps: true 
-});
+);
 
-// Index for efficient queries
-PasswordResetTokenSchema.index({ token: 1 });
-PasswordResetTokenSchema.index({ email: 1 });
-PasswordResetTokenSchema.index({ expiresAt: 1 });
+// Compound indexes for specific query patterns
+PasswordResetTokenSchema.index({ token: 1, used: 1 });
+// PasswordResetTokenSchema.index({ email: 1, expiresAt: 1 });
 
 export default mongoose.models.PasswordResetToken || 
   mongoose.model<IPasswordResetToken>('PasswordResetToken', PasswordResetTokenSchema);

@@ -1,32 +1,34 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-export interface ISettings extends Document {
-  userId: string;
-  currency: string;
-  locale: string;
-  theme: "light" | "dark" | "system";
-  biometricLogin: boolean;
-  notifications: {
-    budgetAlerts: boolean;
-    weeklySummary: boolean;
-  };
-  dataSync: {
-    enabled: boolean;
-    provider: "googleDrive" | "dropbox" | "iCloud" | null;
-  };
-}
+// src/models/Settings.ts
+import mongoose, { Schema } from "mongoose";
+import { ISettings, Currency, Locale, Theme, IDataSync } from '@/types';
 
 const SettingsSchema: Schema = new Schema(
   {
-    userId: { type: String, required: true, unique: true },
-    currency: { type: String, default: "NGN" },
-    locale: { type: String, default: "en-NG" },
+    userId: { 
+      type: String, 
+      required: true, 
+      unique: true,
+      index: true
+    },
+    currency: { 
+      type: String, 
+      enum: ['NGN', 'USD', 'EUR', 'GBP'],
+      default: "NGN" 
+    },
+    locale: { 
+      type: String, 
+      enum: ['en-NG', 'en-US', 'en-GB'],
+      default: "en-NG" 
+    },
     theme: {
       type: String,
       enum: ["light", "dark", "system"],
       default: "system",
     },
-    biometricLogin: { type: Boolean, default: false },
+    biometricLogin: { 
+      type: Boolean, 
+      default: false 
+    },
     notifications: {
       budgetAlerts: { type: Boolean, default: true },
       weeklySummary: { type: Boolean, default: true },
@@ -45,3 +47,4 @@ const SettingsSchema: Schema = new Schema(
 
 export default mongoose.models.Settings ||
   mongoose.model<ISettings>("Settings", SettingsSchema);
+

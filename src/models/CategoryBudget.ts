@@ -1,26 +1,51 @@
-import mongoose, { Schema, Document } from "mongoose";
+// src/models/CategoryBudget.ts
 
-export interface ICategoryBudget extends Document {
-  userId: string;
-  month: string; // e.g., "2025-07"
-  category: string;
-  allocated: number;
-  spent: number;
-  AIRecommendation?: string;
-}
+import mongoose, { Schema } from "mongoose";
+import { ICategoryBudget } from '@/types';
 
 const CategoryBudgetSchema: Schema = new Schema(
   {
-    userId: { type: String, required: true },
-    month: { type: String, required: true },
-    category: { type: String, required: true },
-    allocated: { type: Number, required: true },
-    spent: { type: Number, default: 0 },
-    AIRecommendation: { type: String },
+    userId: { 
+      type: String, 
+      required: true,
+      index: true
+    },
+    month: { 
+      type: String, 
+      required: true,
+      match: /^\d{4}-\d{2}$/, // Enforce YYYY-MM format
+      index: true
+    },
+    category: { 
+      type: String, 
+      required: true,
+      trim: true,
+      maxlength: 100
+    },
+    allocated: { 
+      type: Number, 
+      required: true,
+      min: 0
+    },
+    spent: { 
+      type: Number, 
+      default: 0,
+      min: 0
+    },
+    AIRecommendation: { 
+      type: String,
+      maxlength: 500
+    }
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    indexes: [
+      { userId: 1, month: 1, category: 1 }
+    ]
+  }
 );
 
+// Ensure unique constraint for userId + month + category combination
 CategoryBudgetSchema.index(
   { userId: 1, month: 1, category: 1 },
   { unique: true }
