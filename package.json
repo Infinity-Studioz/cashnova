@@ -17,9 +17,11 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
+    "@fortawesome/free-brands-svg-icons": "^7.0.1",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@types/bcryptjs": "^2.4.6",
+    "autoprefixer": "^10.4.21",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.4",
     "mongodb": "^6.19.0",

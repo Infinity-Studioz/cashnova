@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tailwindcss/utilities";
-/* @import "tailwindcss/preflight"; */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* =========================================
    🌐 Root Theme Colors using OKLCH
