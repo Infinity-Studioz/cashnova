@@ -13,7 +13,9 @@
     "setup:indexes": "tsx scripts/createDatabaseIndexes.ts",
     "test:models": "tsx scripts/testModels.ts",
     "db:status": "tsx scripts/checkIndexStatus.ts",
-    "reset:database": "tsx scripts/resetDatabase.ts"
+    "reset:database": "tsx scripts/resetDatabase.ts",
+    "test:api": "node tests/api-health-check.js",
+    "test:api:dev": "node tests/api-health-check.js http://localhost:3000"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
@@ -24,6 +26,7 @@
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.4",
+    "clsx": "^2.1.1",
     "mongodb": "^6.19.0",
     "mongoose": "^8.6.1",
     "next": "14.2.12",
@@ -35,12 +38,14 @@
     "sonner": "^1.5.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "dotenv": "^17.2.2",
     "eslint": "^8",
     "eslint-config-next": "14.2.12",
+    "jest": "^30.1.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.20.5",

@@ -1,3 +1,5 @@
+// src/app/api/auth/link-account/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import bcrypt from 'bcryptjs';

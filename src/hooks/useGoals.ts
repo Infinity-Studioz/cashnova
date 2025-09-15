@@ -1,15 +1,8 @@
 // src/hooks/useGoals.ts
+
 import { useState, useEffect, useCallback } from 'react';
 import { GoalsService, Goal, GoalSummary, CreateGoalRequest, ContributeResponse } from '@/services/goalsService';
-import { IGoalTemplate } from '@/models/Goal';
 import { toast } from 'sonner';
-
-// Define proper filter map type
-interface FilterMap {
-  [key: string]: {
-    status: 'active' | 'completed' | 'all';
-  };
-}
 
 interface UseGoalsReturn {
   goals: Goal[];
@@ -24,6 +17,12 @@ interface UseGoalsReturn {
   refreshGoals: () => Promise<void>;
   setFilter: (filter: string) => void;
   filter: string;
+}
+
+interface FilterMap {
+  [key: string]: {
+    status: 'active' | 'completed' | 'all';
+  };
 }
 
 export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
@@ -43,20 +42,20 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
         'active': { status: 'active' },
         'completed': { status: 'completed' },
         'all': { status: 'all' },
-        'behind_schedule': { status: 'active' }, // We'll filter on frontend
+        'behind_schedule': { status: 'active' },
       };
 
       const response = await GoalsService.getGoals(filterMap[filter] || { status: 'active' });
       
       let filteredGoals = response.goals;
 
-      // Additional frontend filtering for complex cases
+      // Frontend filtering for complex cases
       if (filter === 'behind_schedule') {
         filteredGoals = response.goals.filter(goal => 
           goal.deadline && 
           !goal.isCompleted && 
-          goal.insights.projectedCompletionDate &&
-          new Date(goal.insights.projectedCompletionDate) > new Date(goal.deadline)
+          goal.daysUntilDeadline !== null &&
+          goal.daysUntilDeadline < 0 // Actually behind schedule
         );
       }
 
@@ -67,7 +66,8 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load goals';
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.error(`Error loading goals: ${errorMessage}`);
+      console.error('Goals fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -80,27 +80,31 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
   const createGoal = async (goalData: CreateGoalRequest): Promise<Goal> => {
     try {
       setLoading(true);
+      setError(null);
+      
       const response = await GoalsService.createGoal(goalData);
       
-      // Add the new goal to the current list
+      // Optimistic update - add to current list
       setGoals(prevGoals => [response.goal, ...prevGoals]);
       
-      // Show success message with insights
+      // Show success with insights
       toast.success(response.message);
       
-      // Show insights as separate notifications
-      response.insights.forEach(insight => {
-        toast.info(insight.message, { duration: 5000 });
-      });
+      // Show AI insights as additional toasts
+      if (response.insights && response.insights.length > 0) {
+        response.insights.forEach(insight => {
+          toast.info(insight.message, { duration: 5000 });
+        });
+      }
 
-      // Update summary by refetching (or optimistically update)
+      // Refresh to get updated summary
       await fetchGoals();
       
       return response.goal;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create goal';
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.error(`Error creating goal: ${errorMessage}`);
       throw err;
     } finally {
       setLoading(false);
@@ -114,9 +118,22 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
     note?: string
   ): Promise<ContributeResponse> => {
     try {
+      // Optimistic update - find and update the goal immediately
+      setGoals(prevGoals => 
+        prevGoals.map(goal => 
+          goal._id === id 
+            ? { 
+                ...goal, 
+                currentAmount: goal.currentAmount + amount,
+                progressPercentage: Math.min(((goal.currentAmount + amount) / goal.targetAmount) * 100, 100)
+              }
+            : goal
+        )
+      );
+
       const response = await GoalsService.contributeToGoal(id, amount, source, note);
       
-      // Update the specific goal in the state
+      // Update with actual server response
       setGoals(prevGoals => 
         prevGoals.map(goal => 
           goal._id === id 
@@ -135,48 +152,55 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
       // Show success message
       toast.success(response.message);
 
-      // Show milestone achievements with celebration
-      response.achievements.milestones.forEach(milestone => {
-        toast.success(
-          `🎉 Milestone achieved! You've reached ${milestone.percentage}% of your goal!`,
-          { duration: 7000 }
-        );
-      });
+      // Milestone celebrations
+      if (response.achievements.milestones && response.achievements.milestones.length > 0) {
+        response.achievements.milestones.forEach(milestone => {
+          toast.success(
+            `🎉 Milestone achieved! You've reached ${milestone.percentage}% of your goal!`,
+            { duration: 8000 }
+          );
+        });
+      }
 
-      // Show insights
-      response.insights.forEach(insight => {
-        toast.info(insight.message, { duration: 5000 });
-      });
-
-      // Show recommendations
-      response.recommendations.forEach(rec => {
-        if (rec.priority === 'high') {
-          toast.info(rec.message, { duration: 6000 });
-        }
-      });
-
-      // If goal completed, show special celebration
+      // Goal completion celebration
       if (response.achievements.completed) {
         toast.success(
-          `🏆 Goal "${response.goal.title}" completed! Congratulations!`,
+          `🏆 Congratulations! "${response.goal.title}" completed!`,
           { duration: 10000 }
         );
       }
 
+      // Show insights
+      if (response.insights && response.insights.length > 0) {
+        response.insights.forEach(insight => {
+          toast.info(insight.message, { duration: 5000 });
+        });
+      }
+
       return response;
     } catch (err) {
+      // Rollback optimistic update on error
+      await fetchGoals();
+      
       const errorMessage = err instanceof Error ? err.message : 'Failed to add contribution';
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.error(`Error adding contribution: ${errorMessage}`);
       throw err;
     }
   };
 
   const updateGoal = async (id: string, updates: Partial<Goal>): Promise<Goal> => {
     try {
+      // Optimistic update
+      setGoals(prevGoals => 
+        prevGoals.map(goal => 
+          goal._id === id ? { ...goal, ...updates } : goal
+        )
+      );
+
       const updatedGoal = await GoalsService.updateGoal(id, updates);
       
-      // Update the specific goal in the state
+      // Update with server response
       setGoals(prevGoals => 
         prevGoals.map(goal => 
           goal._id === id ? { ...goal, ...updatedGoal } : goal
@@ -186,28 +210,37 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
       toast.success('Goal updated successfully');
       return updatedGoal;
     } catch (err) {
+      // Rollback optimistic update on error
+      await fetchGoals();
+      
       const errorMessage = err instanceof Error ? err.message : 'Failed to update goal';
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.error(`Error updating goal: ${errorMessage}`);
       throw err;
     }
   };
 
   const deleteGoal = async (id: string): Promise<void> => {
     try {
-      await GoalsService.deleteGoal(id);
+      // Store goal for potential rollback
+      const goalToDelete = goals.find(goal => goal._id === id);
       
-      // Remove the goal from the state
+      // Optimistic update - remove from list
       setGoals(prevGoals => prevGoals.filter(goal => goal._id !== id));
+      
+      await GoalsService.deleteGoal(id);
       
       toast.success('Goal deleted successfully');
       
-      // Refresh summary
+      // Refresh summary after deletion
       await fetchGoals();
     } catch (err) {
+      // Rollback optimistic update on error
+      await fetchGoals();
+      
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete goal';
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.error(`Error deleting goal: ${errorMessage}`);
       throw err;
     }
   };
@@ -229,85 +262,5 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
     refreshGoals,
     setFilter,
     filter
-  };
-}
-
-// Define types for AI suggestions
-interface AISuggestion {
-  category: string;
-  title: string;
-  description: string;
-  targetAmount: number;
-  timeframe: string;
-  badge: string;
-}
-
-interface UseGoalTemplatesReturn {
-  templates: IGoalTemplate[];
-  aiSuggestions: AISuggestion[];
-  loading: boolean;
-  refreshTemplates: () => Promise<void>;
-}
-
-// Additional hook for goal templates and suggestions
-export function useGoalTemplates(): UseGoalTemplatesReturn {
-  const [templates, setTemplates] = useState<IGoalTemplate[]>([]);
-  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchTemplates = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Get static Nigerian templates
-      const nigerianTemplates = GoalsService.getNigerianTemplates();
-      setTemplates(nigerianTemplates);
-
-      // Fallback to static AI suggestions
-      const staticSuggestions: AISuggestion[] = [
-        {
-          category: 'emergency_fund',
-          title: 'Emergency Fund',
-          description: '3 months of expenses',
-          targetAmount: 600000,
-          timeframe: '12 months',
-          badge: 'Recommended'
-        },
-        {
-          category: 'vacation',
-          title: 'Vacation Fund',
-          description: 'Trip to Dubai',
-          targetAmount: 350000,
-          timeframe: '6 months',
-          badge: 'New'
-        },
-        {
-          category: 'car_purchase',
-          title: 'Car Down Payment',
-          description: 'Toyota Camry 2023',
-          targetAmount: 1200000,
-          timeframe: '18 months',
-          badge: 'Adjustment'
-        }
-      ];
-      
-      setAiSuggestions(staticSuggestions);
-
-    } catch (err) {
-      toast.error('Failed to load goal templates');
-      console.log(err)
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
-
-  return {
-    templates,
-    aiSuggestions,
-    loading,
-    refreshTemplates: fetchTemplates
   };
 }

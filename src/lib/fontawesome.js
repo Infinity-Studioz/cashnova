@@ -103,6 +103,14 @@ import {
   faShoppingCart,
   faBellSlash,
   faSync,
+  faTimesCircle,
+  faTrophy,
+  faBrain,
+  faSearch,
+  faSortAmountDown,
+  faSortAmountUp,
+  faGasPump,
+  faPlusCircle,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -209,5 +217,14 @@ library.add(
   faFolder,
   faShoppingCart,
   faBellSlash,
-  faSync
+  faSync,
+  faTimesCircle,
+  faTrophy,
+  faBrain,
+  faSearch,
+  faSortAmountDown,
+  faSortAmountUp,
+  faGasPump,
+  faPlusCircle,
+  faBullseye
 );

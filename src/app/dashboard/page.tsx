@@ -1,21 +1,44 @@
+// import { redirect } from "next/navigation";
+// import { getAuthSession } from "@/utils/getSession";
+// import MainNavigation from "../components/MainNavigation";
+// import Dashboard from "../index/page";
+// import '../../lib/fontawesome'
+
+// const page = async () => {
+//   const session = await getAuthSession();
+    
+//   if (!session) redirect("/login");
+  
+//   return (
+//     <>
+//       <MainNavigation />
+//       <p className="text-blue-300">Welcome, {session.user?.name}</p>
+//       <Dashboard />
+//     </>
+//   )
+// }
+
+// export default page
+
+// src/app/dashboard/page.tsx
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/utils/getSession";
 import MainNavigation from "../components/MainNavigation";
 import Dashboard from "../index/page";
 import '../../lib/fontawesome'
 
-const page = async () => {
+const DashboardPage = async () => {
   const session = await getAuthSession();
     
   if (!session) redirect("/login");
   
   return (
-    <>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <MainNavigation />
-      <p className="text-blue-300">Welcome, {session.user?.name}</p>
+      {/* Remove the test welcome message */}
       <Dashboard />
-    </>
+    </div>
   )
 }
 
-export default page
+export default DashboardPage;

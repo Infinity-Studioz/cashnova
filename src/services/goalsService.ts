@@ -1,5 +1,5 @@
 // services/goalsService.ts
-import { IGoalTemplate } from '@/models/Goal';
+import { IGoalTemplate } from '@/types';
 
 export interface Goal {
   _id: string;

@@ -1,3 +1,5 @@
+// src/app/api/auth/forgot-password/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { rateLimiter, rateLimitConfigs } from "@/lib/rateLimiter";

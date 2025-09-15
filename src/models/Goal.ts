@@ -1,15 +1,15 @@
 // src/models/Goal.ts
 import mongoose, { Schema } from "mongoose";
-import { 
-  IGoal, 
-  IGoalModel, 
+import {
+  IGoal,
+  IGoalModel,
   IGoalTemplate,
   IMilestone,
   IContribution,
   ContributionSource,
   GoalCategory,
-  Priority
-} from '@/types';
+  Priority,
+} from "@/types";
 
 const GoalSchema: Schema = new Schema(
   {
@@ -156,19 +156,23 @@ GoalSchema.virtual("remainingAmount").get(function (this: IGoal) {
 
 // Virtual for formatted amounts using Nigerian formatting
 GoalSchema.virtual("formattedTargetAmount").get(function (this: IGoal) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
     minimumFractionDigits: 0,
-  }).format(this.targetAmount).replace('NGN', '₦');
+  })
+    .format(this.targetAmount)
+    .replace("NGN", "₦");
 });
 
 GoalSchema.virtual("formattedCurrentAmount").get(function (this: IGoal) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
     minimumFractionDigits: 0,
-  }).format(this.currentAmount).replace('NGN', '₦');
+  })
+    .format(this.currentAmount)
+    .replace("NGN", "₦");
 });
 
 // Method to add contribution
@@ -229,8 +233,7 @@ GoalSchema.methods.updateInsights = function (this: IGoal): void {
     this.contributions.length > 0
       ? Math.max(
           1,
-          (now.getTime() - createdDate.getTime()) /
-            (1000 * 60 * 60 * 24 * 30)
+          (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
         )
       : 1;
   const averageMonthlyContribution = this.currentAmount / monthsActive;

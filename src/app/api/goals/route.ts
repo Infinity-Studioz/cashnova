@@ -2,16 +2,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { connectToDatabase } from "@/lib/mongodb";
-// import Goal, { IGoal, INigerianContext, IContribution, IMilestone, IAutoSaveRules } from '@/models/Goal';
 import { authOptions } from "@/utils/authOptions";
-import Goal, { IGoal } from "@/models/Goal";
-import {
-  IContribution,
-  IMilestone,
-  INigerianContext,
-  GoalCategory,
-  Priority,
-} from "@/types";
+// import Goal, { IGoal, INigerianContext, IContribution, IMilestone, IAutoSaveRules } from '@/models/Goal';
+// import Goal, { IGoal } from "@/models/Goal";
+// import {
+//   IContribution,
+//   IMilestone,
+//   INigerianContext,
+//   GoalCategory,
+//   Priority,
+// } from "@/types";
+
+import Goal from '@/models/Goal';
+import { IGoal, INigerianContext, IContribution, IAutoSaveRules } from '@/types';
 
 // Define API response interfaces
 interface GoalSummary {
@@ -366,8 +369,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       isCompleted: false,
       autoSaveRules: autoSaveRules || {
         enabled: false,
-        percentage: 0,
+        percentage: 5,
         frequency: "monthly",
+        minTransactionAmount: 1000
       },
       nigerianContext: nigerianContext || {
         isSchoolFeesGoal: false,

@@ -1,13 +1,15 @@
-// src/app/api/transactions/route.ts
+// src/app/api/transactions/route.ts - Enhanced with AI and Nigerian Intelligence
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { connectToDatabase } from '@/lib/mongodb';
-import Transaction, { ITransaction } from '@/models/Transaction';
+import Transaction from '@/models/Transaction';
+import AIInsight from '@/models/AIInsight';
+import CategoryBudget from '@/models/CategoryBudget';
+import Notification from '@/models/Notification';
 import { authOptions } from '@/utils/authOptions';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user session
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
@@ -17,10 +19,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Connect to database
     await connectToDatabase();
 
-    // Extract query parameters
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
@@ -28,16 +28,16 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || 'allCats';
     const amountRange = searchParams.get('amountRange') || 'anyAmt';
     const status = searchParams.get('status') || 'allTrans';
-    const type = searchParams.get('type'); // income, expense, or null for both
+    const type = searchParams.get('type');
     const sortBy = searchParams.get('sortBy') || 'date';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-    // Build filter query
+    // Enhanced filter query with Nigerian context
     const filter: any = {
-      userId: session.user.email // Using email as userId for now
+      userId: session.user.email
     };
 
-    // Date range filtering
+    // Enhanced date range filtering
     const now = new Date();
     let startDate: Date;
 
@@ -54,15 +54,23 @@ export async function GET(request: NextRequest) {
       case '6months':
         startDate = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
         break;
+      case 'currentMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'lastMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        filter.date = { $gte: startDate, $lte: endDate };
+        break;
       default:
         startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
     }
 
-    if (dateRange !== 'custom') {
+    if (dateRange !== 'custom' && dateRange !== 'lastMonth') {
       filter.date = { $gte: startDate };
     }
 
-    // Category filtering
+    // Enhanced category filtering with Nigerian categories
     if (category !== 'allCats') {
       const categoryMap: { [key: string]: string } = {
         'food': 'Food & Dining',
@@ -75,7 +83,8 @@ export async function GET(request: NextRequest) {
         'church': 'Church/Mosque',
         'family': 'Family Support',
         'health': 'Health/Medical',
-        'rent': 'Rent/Housing'
+        'rent': 'Rent/Housing',
+        'emergency': 'Emergency Fund'
       };
       
       filter.$or = [
@@ -84,11 +93,23 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Amount range filtering
+    // Nigerian Naira amount filtering
     if (amountRange !== 'anyAmt') {
       switch (amountRange) {
+        case 'u-5k':
+          filter.amount = { $lt: 5000 };
+          break;
+        case '5k-25k':
+          filter.amount = { $gte: 5000, $lte: 25000 };
+          break;
+        case '25k-100k':
+          filter.amount = { $gte: 25000, $lte: 100000 };
+          break;
+        case 'o-100k':
+          filter.amount = { $gt: 100000 };
+          break;
         case 'u-50':
-          filter.amount = { $lt: 50 * 1000 }; // Convert to Naira (₦50,000)
+          filter.amount = { $lt: 50 * 1000 };
           break;
         case '50-200':
           filter.amount = { $gte: 50 * 1000, $lte: 200 * 1000 };
@@ -102,7 +123,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Status filtering
+    // Enhanced status filtering
     if (status !== 'allTrans') {
       switch (status) {
         case 'review':
@@ -131,17 +152,35 @@ export async function GET(request: NextRequest) {
     const sortObj: { [key: string]: 1 | -1 } = {};
     sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
-    // Execute queries
-    const [transactions, totalCount] = await Promise.all([
+    // Execute enhanced queries
+    const [transactions, totalCount, categoryInsights] = await Promise.all([
       Transaction.find(filter)
         .sort(sortObj)
         .skip(skip)
         .limit(limit)
         .lean(),
-      Transaction.countDocuments(filter)
+      Transaction.countDocuments(filter),
+      
+      // Enhanced category insights
+      Transaction.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: { $ifNull: ['$userCategory', '$category'] },
+            totalAmount: { $sum: '$amount' },
+            count: { $sum: 1 },
+            avgAmount: { $avg: '$amount' },
+            merchants: { $addToSet: '$merchant' },
+            paymentMethods: { $addToSet: '$paymentMethod' },
+            lastTransaction: { $max: '$date' }
+          }
+        },
+        { $sort: { totalAmount: -1 } },
+        { $limit: 10 }
+      ])
     ]);
 
-    // Calculate summary statistics for the filtered results
+    // Enhanced summary with Nigerian insights
     const summaryPipeline = [
       { $match: filter },
       {
@@ -158,7 +197,12 @@ export async function GET(request: NextRequest) {
             }
           },
           transactionCount: { $sum: 1 },
-          avgTransactionAmount: { $avg: '$amount' }
+          avgTransactionAmount: { $avg: '$amount' },
+          categories: { $addToSet: { $ifNull: ['$userCategory', '$category'] } },
+          merchants: { $addToSet: '$merchant' },
+          recurringCount: {
+            $sum: { $cond: ['$recurring', 1, 0] }
+          }
         }
       }
     ];
@@ -169,45 +213,76 @@ export async function GET(request: NextRequest) {
       totalIncome: 0,
       totalExpenses: 0,
       transactionCount: 0,
-      avgTransactionAmount: 0
+      avgTransactionAmount: 0,
+      categories: [],
+      merchants: [],
+      recurringCount: 0
     };
 
-    // Get category breakdown for the current filter
-    const categoryPipeline = [
-      { $match: { ...filter, type: 'expense' } },
-      {
-        $group: {
-          _id: { $ifNull: ['$userCategory', '$category'] },
-          totalAmount: { $sum: '$amount' },
-          count: { $sum: 1 }
+    // Enhanced transaction processing with AI insights
+    const enhancedTransactions = await Promise.all(
+      transactions.map(async (transaction) => {
+        const effectiveCategory = transaction.userCategory || transaction.category;
+        
+        // Generate AI insights for significant transactions
+        let aiInsight = null;
+        if (transaction.amount > 50000 && transaction.type === 'expense') {
+          try {
+            // Check if this is unusual spending for the category
+            const categoryAvg = categoryInsights.find(c => c._id === effectiveCategory)?.avgAmount || 0;
+            if (transaction.amount > categoryAvg * 2) {
+              aiInsight = {
+                type: 'unusual_spending',
+                message: `This ${effectiveCategory.toLowerCase()} expense is ${Math.round(transaction.amount / categoryAvg)}x your average`,
+                severity: 'medium'
+              };
+            }
+          } catch (error) {
+            console.error('Error generating transaction insight:', error);
+          }
         }
-      },
-      { $sort: { totalAmount: -1 as -1 } },
-      { $limit: 10 }
-    ];
 
-    const categoryBreakdown = await Transaction.aggregate(categoryPipeline);
+        return {
+          ...transaction,
+          effectiveCategory,
+          formattedAmount: formatNaira(transaction.amount),
+          nigerianMerchant: detectNigerianMerchant(transaction.merchant),
+          aiInsight,
+          categoryConfidence: calculateCategoryConfidence(transaction),
+          tags: generateTransactionTags(transaction)
+        };
+      })
+    );
 
-    // Calculate total pages
-    const totalPages = Math.ceil(totalCount / limit);
+    // Enhanced category breakdown with Nigerian context
+    const categoryBreakdown = categoryInsights.map((cat) => {
+      const percentage = summary.transactionCount > 0 ? Math.round((cat.count / summary.transactionCount) * 100) : 0;
+      
+      return {
+        category: cat._id,
+        amount: cat.totalAmount,
+        count: cat.count,
+        avgAmount: cat.avgAmount,
+        percentage,
+        merchants: cat.merchants?.filter(Boolean) || [],
+        paymentMethods: cat.paymentMethods || [],
+        lastActivity: cat.lastTransaction,
+        formattedAmount: formatNaira(cat.totalAmount),
+        formattedAvgAmount: formatNaira(cat.avgAmount),
+        nigerianInsights: generateCategoryInsights(cat._id, cat.totalAmount, percentage)
+      };
+    });
 
-    // Response data
+    // Generate spending patterns and insights
+    const spendingPatterns = await analyzeSpendingPatterns(session.user.email, filter);
+    
     const responseData = {
-      transactions: transactions.map(transaction => ({
-        ...transaction,
-        effectiveCategory: transaction.userCategory || transaction.category,
-        // Format amount for Nigerian Naira
-        formattedAmount: new Intl.NumberFormat('en-NG', {
-          style: 'currency',
-          currency: 'NGN',
-          minimumFractionDigits: 0,
-        }).format(transaction.amount).replace('NGN', '₦')
-      })),
+      transactions: enhancedTransactions,
       pagination: {
         currentPage: page,
-        totalPages,
+        totalPages: Math.ceil(totalCount / limit),
         totalCount,
-        hasNextPage: page < totalPages,
+        hasNextPage: page < Math.ceil(totalCount / limit),
         hasPreviousPage: page > 1,
         limit
       },
@@ -217,34 +292,17 @@ export async function GET(request: NextRequest) {
         netAmount: summary.totalIncome - summary.totalExpenses,
         transactionCount: summary.transactionCount,
         avgTransactionAmount: summary.avgTransactionAmount,
+        categoriesUsed: summary.categories?.length || 0,
+        merchantsUsed: summary.merchants?.filter(Boolean).length || 0,
+        recurringTransactions: summary.recurringCount,
         // Nigerian-formatted amounts
-        formattedTotalIncome: new Intl.NumberFormat('en-NG', {
-          style: 'currency',
-          currency: 'NGN',
-          minimumFractionDigits: 0,
-        }).format(summary.totalIncome).replace('NGN', '₦'),
-        formattedTotalExpenses: new Intl.NumberFormat('en-NG', {
-          style: 'currency',
-          currency: 'NGN',
-          minimumFractionDigits: 0,
-        }).format(summary.totalExpenses).replace('NGN', '₦'),
-        formattedNetAmount: new Intl.NumberFormat('en-NG', {
-          style: 'currency',
-          currency: 'NGN',
-          minimumFractionDigits: 0,
-        }).format(summary.totalIncome - summary.totalExpenses).replace('NGN', '₦')
+        formattedTotalIncome: formatNaira(summary.totalIncome),
+        formattedTotalExpenses: formatNaira(summary.totalExpenses),
+        formattedNetAmount: formatNaira(summary.totalIncome - summary.totalExpenses),
+        formattedAvgAmount: formatNaira(summary.avgTransactionAmount)
       },
-      categoryBreakdown: categoryBreakdown.map((cat: { _id: string; totalAmount: number; count: number }) => ({
-        category: cat._id,
-        amount: cat.totalAmount,
-        count: cat.count,
-        percentage: totalCount > 0 ? Math.round((cat.count / totalCount) * 100) : 0,
-        formattedAmount: new Intl.NumberFormat('en-NG', {
-          style: 'currency',
-          currency: 'NGN',
-          minimumFractionDigits: 0,
-        }).format(cat.totalAmount).replace('NGN', '₦')
-      })),
+      categoryBreakdown,
+      spendingPatterns,
       appliedFilters: {
         dateRange,
         category,
@@ -253,30 +311,15 @@ export async function GET(request: NextRequest) {
         type,
         sortBy,
         sortOrder
-      }
+      },
+      nigerianInsights: generateTransactionInsights(summary, categoryBreakdown)
     };
 
     return NextResponse.json(responseData);
 
   } catch (error: unknown) {
-    console.error('Error fetching transactions:', error);
+    console.error('Error fetching enhanced transactions:', error);
     
-    // Handle specific MongoDB errors
-    if (typeof error === 'object' && error !== null && 'name' in error) {
-      if ((error as { name: string }).name === 'CastError') {
-        return NextResponse.json(
-          { error: 'Invalid query parameters provided.' },
-          { status: 400 }
-        );
-      }
-      if ((error as { name: string }).name === 'ValidationError') {
-        return NextResponse.json(
-          { error: 'Invalid filter criteria provided.' },
-          { status: 400 }
-        );
-      }
-    }
-
     return NextResponse.json(
       { 
         error: 'Failed to fetch transactions. Please try again later.',
@@ -289,7 +332,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get user session
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
@@ -299,15 +341,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Connect to database
     await connectToDatabase();
 
-    // Parse request body
     const body = await request.json();
-    
-    // Validate required fields
     const { type, amount, date, note, merchant, location, paymentMethod, recurring, recurringPattern } = body;
     
+    // Enhanced validation
     if (!type || !amount || !date) {
       return NextResponse.json(
         { error: 'Missing required fields: type, amount, and date are required.' },
@@ -329,50 +368,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate recurring pattern if recurring is true
-    if (recurring && !recurringPattern) {
+    // Enhanced Nigerian context validation
+    if (amount > 10000000) { // 10 million limit
       return NextResponse.json(
-        { error: 'Recurring pattern is required when transaction is marked as recurring.' },
+        { error: 'Maximum transaction amount is ₦10,000,000. Contact support for larger transactions.' },
         { status: 400 }
       );
     }
 
-    if (recurring && !['daily', 'weekly', 'monthly', 'yearly'].includes(recurringPattern)) {
-      return NextResponse.json(
-        { error: 'Invalid recurring pattern. Must be daily, weekly, monthly, or yearly.' },
-        { status: 400 }
-      );
-    }
-
-    // Smart auto-categorization
+    // Smart auto-categorization using your Transaction model
     let autoCategory: string;
     let userCategory: string | undefined;
 
     if (body.category) {
-      // User provided a category, use it as userCategory
       userCategory = body.category;
       autoCategory = Transaction.categorizeTransaction(merchant, note, amount);
     } else {
-      // No category provided, use smart categorization
       autoCategory = Transaction.categorizeTransaction(merchant, note, amount);
     }
 
-    // Detect potential recurring transactions based on merchant and amount patterns
+    // Enhanced recurring transaction detection
     let isLikelyRecurring = recurring || false;
     let suggestedPattern = recurringPattern;
 
     if (!recurring && merchant) {
-      // Check if this merchant/amount combination exists in recent transactions
       const recentSimilarTransactions = await Transaction.find({
         userId: session.user.email,
         merchant: { $regex: new RegExp(merchant, 'i') },
-        amount: { $gte: amount * 0.9, $lte: amount * 1.1 }, // Within 10% of amount
-        date: { $gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } // Last 90 days
+        amount: { $gte: amount * 0.9, $lte: amount * 1.1 },
+        date: { $gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) }
       }).sort({ date: -1 }).limit(5);
 
       if (recentSimilarTransactions.length >= 2) {
         isLikelyRecurring = true;
-        // Analyze dates to suggest pattern
         const dates = recentSimilarTransactions.map(t => t.date);
         const daysDiff = Math.abs(dates[0].getTime() - dates[1].getTime()) / (1000 * 60 * 60 * 24);
         
@@ -384,22 +412,56 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Detect spending patterns for AI insights
+    // Enhanced Nigerian spending analysis
     let flagForReview = false;
     let aiInsight: string | undefined;
+    let budgetImpact: any = null;
 
     if (type === 'expense') {
-      // Check if this is unusually high spending for this category in the current month
-      const currentMonth = new Date();
-      currentMonth.setDate(1);
-      currentMonth.setHours(0, 0, 0, 0);
-      
+      // Check against budget
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const categoryBudget = await CategoryBudget.findOne({
+        userId: session.user.email,
+        month: currentMonth,
+        category: userCategory || autoCategory
+      });
+
+      if (categoryBudget) {
+        const newSpent = categoryBudget.spent + amount;
+        const percentageUsed = (newSpent / categoryBudget.allocated) * 100;
+        
+        budgetImpact = {
+          category: categoryBudget.category,
+          newSpent,
+          allocated: categoryBudget.allocated,
+          percentageUsed: Math.round(percentageUsed),
+          isOverBudget: newSpent > categoryBudget.allocated,
+          formattedNewSpent: formatNaira(newSpent),
+          formattedAllocated: formatNaira(categoryBudget.allocated)
+        };
+
+        // Generate budget alert if needed
+        if (percentageUsed >= 90) {
+          try {
+            await AIInsight.generateBudgetAlert(session.user.email, {
+              categoryName: categoryBudget.category,
+              percentageUsed: Math.round(percentageUsed),
+              remaining: categoryBudget.allocated - newSpent,
+              budgetId: categoryBudget._id
+            });
+          } catch (error) {
+            console.error('Error generating budget alert:', error);
+          }
+        }
+      }
+
+      // Advanced spending pattern analysis
       const monthlySpending = await Transaction.aggregate([
         {
           $match: {
             userId: session.user.email,
             type: 'expense',
-            date: { $gte: currentMonth },
+            date: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
             $or: [
               { category: autoCategory },
               { userCategory: autoCategory }
@@ -419,66 +481,15 @@ export async function POST(request: NextRequest) {
       if (monthlySpending.length > 0) {
         const { totalSpent, avgTransaction } = monthlySpending[0];
         
-        // Flag if this transaction is significantly higher than average
-        if (amount > avgTransaction * 2 && amount > 10000) { // > 2x average and > ₦10,000
+        if (amount > avgTransaction * 2 && amount > 10000) {
           flagForReview = true;
           aiInsight = `This ${autoCategory.toLowerCase()} expense is ${Math.round(amount / avgTransaction)}x your average. Consider reviewing if necessary.`;
-        }
-        
-        // Flag if monthly spending in category is unusually high
-        const lastMonthSpending = await Transaction.aggregate([
-          {
-            $match: {
-              userId: session.user.email,
-              type: 'expense',
-              date: { 
-                $gte: new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1),
-                $lt: currentMonth
-              },
-              $or: [
-                { category: autoCategory },
-                { userCategory: autoCategory }
-              ]
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              totalSpent: { $sum: '$amount' }
-            }
-          }
-        ]);
-
-        if (lastMonthSpending.length > 0) {
-          const lastMonthTotal = lastMonthSpending[0].totalSpent;
-          const projectedMonthlySpend = totalSpent + amount;
-          
-          if (projectedMonthlySpend > lastMonthTotal * 1.5) {
-            flagForReview = true;
-            aiInsight = `Your ${autoCategory.toLowerCase()} spending is ${Math.round((projectedMonthlySpend / lastMonthTotal - 1) * 100)}% higher than last month.`;
-          }
         }
       }
     }
 
-    // Create transaction object
-    const transactionData: {
-      userId: string;
-      type: string;
-      amount: number;
-      category: string;
-      userCategory?: string;
-      note?: string;
-      merchant?: string;
-      location?: string;
-      paymentMethod: string;
-      date: Date;
-      recurring: boolean;
-      recurringPattern?: string;
-      status: string;
-      autoCategory: string;
-      tags: string[];
-    } = {
+    // Create enhanced transaction object
+    const transactionData = {
       userId: session.user.email,
       type,
       amount,
@@ -493,65 +504,39 @@ export async function POST(request: NextRequest) {
       recurringPattern: suggestedPattern,
       status: flagForReview ? 'flagged' : 'completed',
       autoCategory,
-      tags: []
+      tags: generateTransactionTags({ merchant, note, amount, category: autoCategory })
     };
-
-    // Add Nigerian-specific tags
-    if (merchant) {
-      if (['Uber', 'Bolt', 'InDrive'].some(app => merchant.toLowerCase().includes(app.toLowerCase()))) {
-        transactionData.tags.push('ride-hailing');
-      }
-      if (['GTBank', 'First Bank', 'Zenith', 'Access', 'UBA'].some(bank => 
-        merchant.toLowerCase().includes(bank.toLowerCase())
-      )) {
-        transactionData.tags.push('banking');
-      }
-    }
-
-    if (note) {
-      if (note.toLowerCase().includes('emergency')) {
-        transactionData.tags.push('emergency');
-      }
-      if (['salary', 'bonus', 'allowance'].some(keyword => 
-        note.toLowerCase().includes(keyword)
-      )) {
-        transactionData.tags.push('employment');
-      }
-    }
 
     // Create the transaction
     const newTransaction = new Transaction(transactionData);
     const savedTransaction = await newTransaction.save();
 
-    // Prepare response with AI insights
-    const response: {
-      success: boolean;
-      transaction: ITransaction;
-      aiInsights: {
-        autoDetectedCategory: string;
-        suggestedRecurring: {
-          recurring: boolean;
-          pattern?: string;
-          reason?: string;
-        } | null;
-        flaggedForReview: boolean;
-        insight?: string;
-        tags: string[];
-      };
-      recommendations: { type: string; message: string; action: string }[];
-    } = {
+    // Update category budget if applicable
+    if (type === 'expense' && budgetImpact) {
+      await CategoryBudget.updateOne(
+        {
+          userId: session.user.email,
+          month: new Date().toISOString().slice(0, 7),
+          category: budgetImpact.category
+        },
+        { $inc: { spent: amount } }
+      );
+    }
+
+    // Generate AI insights for significant transactions
+    const insights = await generateTransactionAIInsights(session.user.email, savedTransaction, budgetImpact);
+
+    // Enhanced response with Nigerian context
+    const response = {
       success: true,
       transaction: {
         ...savedTransaction.toJSON(),
         effectiveCategory: savedTransaction.userCategory || savedTransaction.category,
-        formattedAmount: new Intl.NumberFormat('en-NG', {
-          style: 'currency',
-          currency: 'NGN',
-          minimumFractionDigits: 0,
-        }).format(savedTransaction.amount).replace('NGN', '₦')
+        formattedAmount: formatNaira(savedTransaction.amount)
       },
       aiInsights: {
         autoDetectedCategory: autoCategory,
+        categoryConfidence: calculateCategoryConfidence(savedTransaction),
         suggestedRecurring: isLikelyRecurring && !recurring ? {
           recurring: true,
           pattern: suggestedPattern,
@@ -561,55 +546,16 @@ export async function POST(request: NextRequest) {
         insight: aiInsight,
         tags: transactionData.tags
       },
-      recommendations: []
+      budgetImpact,
+      insights,
+      recommendations: generateTransactionRecommendations(savedTransaction, budgetImpact)
     };
-
-    // Add smart recommendations based on transaction
-    if (type === 'expense' && amount > 50000) {
-      response.recommendations.push({
-        type: 'savings_tip',
-        message: 'Consider setting aside 10% of large expenses for your emergency fund.',
-        action: 'create_savings_goal'
-      });
-    }
-
-    if (autoCategory === 'Food & Dining' && amount > 15000) {
-      response.recommendations.push({
-        type: 'budget_tip',
-        message: 'Food expenses are high this month. Consider meal planning to save costs.',
-        action: 'create_budget'
-      });
-    }
-
-    if (autoCategory === 'Transport' && paymentMethod === 'cash') {
-      response.recommendations.push({
-        type: 'efficiency_tip',
-        message: 'Using ride-hailing apps or digital payments can help track transport expenses better.',
-        action: 'update_payment_method'
-      });
-    }
 
     return NextResponse.json(response, { status: 201 });
 
   } catch (error: unknown) {
-    console.error('Error creating transaction:', error);
-
-    // Handle specific MongoDB errors
-    if (typeof error === 'object' && error !== null && 'name' in error && (error as { name: string }).name === 'ValidationError') {
-      const validationErrors = Object.values((error as unknown as { errors: Record<string, { message: string }> }).errors).map(err => err.message);
-      return NextResponse.json(
-        { error: 'Validation failed', details: validationErrors },
-        { status: 400 }
-      );
-    }
-
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
-      return NextResponse.json(
-        { error: 'Duplicate transaction detected.' },
-        { status: 409 }
-      );
-    }
-
+    console.error('Error creating enhanced transaction:', error);
+    
     return NextResponse.json(
       { 
         error: 'Failed to create transaction. Please try again.',
@@ -618,4 +564,216 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Enhanced helper functions
+function formatNaira(amount: number): string {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 0,
+  }).format(amount).replace('NGN', '₦');
+}
+
+function detectNigerianMerchant(merchant?: string): any {
+  if (!merchant) return null;
+  
+  const nigerianMerchants = {
+    'GTBank': { type: 'bank', category: 'Nigerian Bank' },
+    'Zenith': { type: 'bank', category: 'Nigerian Bank' },
+    'Access': { type: 'bank', category: 'Nigerian Bank' },
+    'Uber': { type: 'transport', category: 'Ride Hailing' },
+    'Bolt': { type: 'transport', category: 'Ride Hailing' },
+    'Jumia': { type: 'ecommerce', category: 'Nigerian E-commerce' },
+    'Konga': { type: 'ecommerce', category: 'Nigerian E-commerce' },
+    'Shoprite': { type: 'retail', category: 'Retail Chain' },
+    'DSTV': { type: 'entertainment', category: 'Subscription' },
+    'MTN': { type: 'telecom', category: 'Nigerian Telecom' },
+    'Airtel': { type: 'telecom', category: 'Nigerian Telecom' }
+  };
+
+  for (const [name, data] of Object.entries(nigerianMerchants)) {
+    if (merchant.toLowerCase().includes(name.toLowerCase())) {
+      return { name, ...data };
+    }
+  }
+  
+  return null;
+}
+
+function calculateCategoryConfidence(transaction: any): number {
+  let confidence = 70; // Base confidence
+  
+  if (transaction.merchant) confidence += 15;
+  if (transaction.note) confidence += 10;
+  if (transaction.amount > 1000) confidence += 5;
+  
+  return Math.min(100, confidence);
+}
+
+function generateTransactionTags(transaction: any): string[] {
+  const tags = [];
+  
+  if (transaction.merchant) {
+    if (['Uber', 'Bolt', 'InDrive'].some(app => 
+      transaction.merchant.toLowerCase().includes(app.toLowerCase())
+    )) {
+      tags.push('ride-hailing', 'transport');
+    }
+    
+    if (['GTBank', 'Zenith', 'Access', 'UBA'].some(bank => 
+      transaction.merchant.toLowerCase().includes(bank.toLowerCase())
+    )) {
+      tags.push('banking', 'financial-services');
+    }
+    
+    if (['Jumia', 'Konga'].some(ecom => 
+      transaction.merchant.toLowerCase().includes(ecom.toLowerCase())
+    )) {
+      tags.push('ecommerce', 'online-shopping');
+    }
+  }
+  
+  if (transaction.note) {
+    if (transaction.note.toLowerCase().includes('emergency')) {
+      tags.push('emergency');
+    }
+    if (['salary', 'bonus', 'allowance'].some(keyword => 
+      transaction.note.toLowerCase().includes(keyword)
+    )) {
+      tags.push('employment', 'income');
+    }
+  }
+  
+  if (transaction.amount > 100000) {
+    tags.push('large-transaction');
+  }
+  
+  return tags;
+}
+
+function generateCategoryInsights(category: string, amount: number, percentage: number): string[] {
+  const insights = [];
+  
+  if (category === 'Transport' && amount > 50000) {
+    insights.push('High transport costs - consider BRT or carpooling options');
+  }
+  
+  if (category === 'Food & Dining' && percentage > 30) {
+    insights.push('Food expenses are high - try meal planning and local markets');
+  }
+  
+  if (category === 'Bills' && amount > 30000) {
+    insights.push('Review utility bills for optimization opportunities');
+  }
+  
+  if (category === 'Family Support' && amount > 20000) {
+    insights.push('Significant family support - consider budgeting this category');
+  }
+  
+  return insights;
+}
+
+async function analyzeSpendingPatterns(userId: string, filter: any): Promise<any> {
+  try {
+    const patterns = await Transaction.aggregate([
+      { $match: { ...filter, type: 'expense' } },
+      {
+        $group: {
+          _id: {
+            dayOfWeek: { $dayOfWeek: '$date' },
+            hour: { $hour: '$date' }
+          },
+          totalSpent: { $sum: '$amount' },
+          count: { $sum: 1 },
+          avgAmount: { $avg: '$amount' }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    return {
+      spendingTimes: patterns,
+      insights: patterns.length > 0 ? [
+        `Most transactions happen on ${getDayName(patterns[0]._id.dayOfWeek)}`,
+        `Average transaction: ${formatNaira(patterns[0].avgAmount)}`
+      ] : []
+    };
+  } catch (error) {
+    console.error('Error analyzing spending patterns:', error);
+    return { spendingTimes: [], insights: [] };
+  }
+}
+
+async function generateTransactionAIInsights(userId: string, transaction: any, budgetImpact: any): Promise<any[]> {
+  const insights = [];
+  
+  if (budgetImpact?.isOverBudget) {
+    insights.push({
+      type: 'budget_warning',
+      title: 'Budget Exceeded',
+      message: `This transaction puts your ${budgetImpact.category} budget over limit`,
+      action: 'review_budget'
+    });
+  }
+  
+  if (transaction.amount > 50000 && transaction.type === 'expense') {
+    insights.push({
+      type: 'large_expense',
+      title: 'Large Expense Detected',
+      message: `Consider if this ${formatNaira(transaction.amount)} expense aligns with your financial goals`,
+      action: 'review_goals'
+    });
+  }
+  
+  return insights;
+}
+
+function generateTransactionRecommendations(transaction: any, budgetImpact: any): any[] {
+  const recommendations = [];
+  
+  if (transaction.type === 'expense' && transaction.amount > 50000) {
+    recommendations.push({
+      type: 'savings_tip',
+      message: 'Consider setting aside 10% of large expenses for your emergency fund',
+      action: 'create_savings_goal'
+    });
+  }
+  
+  if (budgetImpact?.percentageUsed > 80) {
+    recommendations.push({
+      type: 'budget_tip',
+      message: `Your ${budgetImpact.category} budget is ${budgetImpact.percentageUsed}% used. Consider adjusting spending`,
+      action: 'adjust_budget'
+    });
+  }
+  
+  return recommendations;
+}
+
+function generateTransactionInsights(summary: any, categoryBreakdown: any[]): string[] {
+  const insights = [];
+  
+  if (summary.totalExpenses > summary.totalIncome) {
+    insights.push('Expenses exceed income this period - consider budget review');
+  }
+  
+  if (categoryBreakdown.length > 0) {
+    const topCategory = categoryBreakdown[0];
+    if (topCategory.percentage > 40) {
+      insights.push(`${topCategory.category} dominates spending at ${topCategory.percentage}%`);
+    }
+  }
+  
+  if (summary.recurringTransactions > summary.transactionCount * 0.3) {
+    insights.push('High recurring transactions - good for budgeting predictability');
+  }
+  
+  return insights;
+}
+
+function getDayName(dayNumber: number): string {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[dayNumber - 1] || 'Unknown';
 }
