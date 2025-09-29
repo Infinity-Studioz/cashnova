@@ -111,6 +111,20 @@ import {
   faSortAmountUp,
   faGasPump,
   faPlusCircle,
+  faGlobeAfrica,
+  faHeartbeat,
+  faSms,
+  faEnvelope,
+  faBus,
+  faSave,
+  faCalendarXmark,
+  faCalendarCheck,
+  faFileAlt,
+  faFileDownload,
+  faFileInvoice,
+  faFingerprint,
+  faQuestionCircle,
+  faDatabase,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -226,5 +240,18 @@ library.add(
   faSortAmountUp,
   faGasPump,
   faPlusCircle,
-  faBullseye
+  faBullseye,
+  faGlobeAfrica,
+  faHeartbeat,
+  faSms,
+  faEnvelope,
+  faBus,
+  faSave,
+  faCalendarCheck,
+  faFileAlt,
+  faFileDownload,
+  faFileInvoice,
+  faFingerprint,
+  faQuestionCircle,
+  faDatabase
 );
