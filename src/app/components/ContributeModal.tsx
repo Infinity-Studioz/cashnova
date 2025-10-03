@@ -590,9 +590,9 @@ export default function ContributeModal({ isOpen, onClose, goal, onContribute }:
             <div className="mt-3">
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                 <span>{goal.progressPercentage.toFixed(1)}% complete</span>
-                {goal.deadline && goal.daysUntilDeadline !== null && (
+                {goal.deadline && goal.daysUntilDeadline !== null && goal.daysUntilDeadline !== undefined && (
                   <span>
-                    {goal.daysUntilDeadline >= 0 
+                    {goal.daysUntilDeadline >= 0
                       ? `${goal.daysUntilDeadline} days left`
                       : `${Math.abs(goal.daysUntilDeadline)} days overdue`
                     }

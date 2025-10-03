@@ -52,9 +52,10 @@ export function useGoals(initialFilter: string = 'active'): UseGoalsReturn {
       // Frontend filtering for complex cases
       if (filter === 'behind_schedule') {
         filteredGoals = response.goals.filter(goal => 
-          goal.deadline && 
-          !goal.isCompleted && 
+          goal.deadline &&
+          !goal.isCompleted &&
           goal.daysUntilDeadline !== null &&
+          goal.daysUntilDeadline !== undefined &&
           goal.daysUntilDeadline < 0 // Actually behind schedule
         );
       }

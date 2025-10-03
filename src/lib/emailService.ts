@@ -28,7 +28,6 @@ export async function sendEmail({ to, subject, html }: EmailOptions): Promise<bo
       return false;
     }
 
-    console.log('Email sent successfully:', result.data?.id);
     return true;
   } catch (error) {
     console.error('Failed to send email:', error);

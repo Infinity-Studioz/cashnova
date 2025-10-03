@@ -1161,10 +1161,10 @@ const CategoryBudgetsPage = () => {
           {/* Category Budget List */}
           <div className="space-y-4 mb-8">
             {categoryBudgets.map((categoryBudget, index) => {
-              const icon = NIGERIAN_CATEGORY_ICONS[categoryBudget.category] || 'folder';
-              const colors = NIGERIAN_CATEGORY_COLORS[categoryBudget.category] || { 
-                bg: 'bg-gray-100 dark:bg-gray-700/20', 
-                text: 'text-gray-600 dark:text-gray-400' 
+              const icon = NIGERIAN_CATEGORY_ICONS[categoryBudget.category as keyof typeof NIGERIAN_CATEGORY_ICONS] || 'folder';
+              const colors = NIGERIAN_CATEGORY_COLORS[categoryBudget.category as keyof typeof NIGERIAN_CATEGORY_COLORS] || {
+                bg: 'bg-gray-100 dark:bg-gray-700/20',
+                text: 'text-gray-600 dark:text-gray-400'
               };
               const isEditing = editingCategory === categoryBudget.category;
               const priorityBadge = getNigerianPriorityBadge(categoryBudget.category, nigerianContext);

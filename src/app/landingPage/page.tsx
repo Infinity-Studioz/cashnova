@@ -643,28 +643,28 @@ const LandingPage = () => {
                   className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition"
                 >
                   {/* <i className="fab fa-twitter"></i> */}
-                  <FontAwesomeIcon icon={faXTwitter} />
+                  <FontAwesomeIcon icon={faXTwitter as any} />
                 </Link>
                 <Link
                   href="#"
                   className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition"
                 >
                   {/* <i className="fab fa-facebook-f"></i> */}
-                  <FontAwesomeIcon icon={faFacebookF} />
+                  <FontAwesomeIcon icon={faFacebookF as any} />
                 </Link>
                 <Link
                   href="#"
                   className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition"
                 >
                   {/* <i className="fab fa-instagram"></i> */}
-                  <FontAwesomeIcon icon={faInstagram} />
+                  <FontAwesomeIcon icon={faInstagram as any} />
                 </Link>
                 <Link
                   href="#"
                   className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition"
                 >
                   {/* <i className="fab fa-linkedin-in"></i> */}
-                  <FontAwesomeIcon icon={faLinkedinIn} />
+                  <FontAwesomeIcon icon={faLinkedinIn as any} />
                 </Link>
               </div>
             </div>

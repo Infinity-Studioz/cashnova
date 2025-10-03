@@ -5,6 +5,40 @@ import { connectToDatabase } from "@/lib/mongodb";
 import AlertSettings from "@/models/AlertSettings";
 import { authOptions } from "@/utils/authOptions";
 
+// Helper function to get default settings
+function getDefaultSettings(userId: string) {
+  return {
+    userId: userId,
+    categoryThreshold: {
+      enabled: true,
+      percentage: 80,
+      categories: ['all']
+    },
+    budgetExceeded: {
+      enabled: true,
+      percentage: 100
+    },
+    weeklySummary: {
+      enabled: true,
+      dayOfWeek: 'Sunday',
+      timeOfDay: '18:00'
+    },
+    customAlerts: [],
+    notificationPreferences: {
+      email: true,
+      push: false,
+      inApp: true,
+      sms: false
+    },
+    nigerianContext: {
+      salaryDayReminders: true,
+      schoolFeeSeasonAlerts: true,
+      festiveSeasonWarnings: true,
+      economicUpdateFrequency: 'weekly'
+    }
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -25,9 +59,7 @@ export async function GET(request: NextRequest) {
 
     if (!alertSettings) {
       // Create default settings for new user
-      const defaultSettings = AlertSettings.getDefaultSettings(
-        session.user.email
-      );
+      const defaultSettings = getDefaultSettings(session.user.email);
       alertSettings = new AlertSettings(defaultSettings);
       await alertSettings.save();
     }
@@ -131,9 +163,7 @@ export async function PUT(request: NextRequest) {
 
     if (!alertSettings) {
       // Create new settings
-      const defaultSettings = AlertSettings.getDefaultSettings(
-        session.user.email
-      );
+      const defaultSettings = getDefaultSettings(session.user.email);
       alertSettings = new AlertSettings(defaultSettings);
     }
 
@@ -206,30 +236,6 @@ export async function PUT(request: NextRequest) {
       alertSettings: alertSettings.toJSON(),
     });
 
-    if (customAlerts) {
-      // Validate custom alerts array
-      const validatedCustomAlerts = customAlerts.map((alert: any) => {
-        if (
-          !alert.id ||
-          !alert.category ||
-          !alert.condition ||
-          typeof alert.threshold !== "number"
-        ) {
-          throw new Error("Invalid custom alert configuration");
-        }
-        return {
-          id: alert.id,
-          enabled: Boolean(alert.enabled),
-          category: alert.category,
-          condition: alert.condition,
-          threshold: alert.threshold,
-          isPercentage: Boolean(alert.isPercentage),
-          notificationTiming: alert.notificationTiming || "immediate",
-        };
-      });
-
-      alertSettings.customAlerts = validatedCustomAlerts;
-    }
   } catch (error: any) {
     console.error("Error updating alert settings:", error);
 
@@ -303,9 +309,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!alertSettings) {
-      const defaultSettings = AlertSettings.getDefaultSettings(
-        session.user.email
-      );
+      const defaultSettings = getDefaultSettings(session.user.email);
       alertSettings = new AlertSettings(defaultSettings);
     }
 

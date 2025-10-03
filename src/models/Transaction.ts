@@ -290,8 +290,10 @@ TransactionSchema.statics.categorizeTransaction = function (
   return "Other Expenses";
 };
 
-export default mongoose.models.Transaction ||
+const Transaction = (mongoose.models.Transaction ||
   mongoose.model<ITransaction, ITransactionModel>(
     "Transaction",
     TransactionSchema
-  );
+  )) as ITransactionModel;
+
+export default Transaction;

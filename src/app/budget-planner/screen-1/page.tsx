@@ -1035,8 +1035,8 @@ const BudgetPlannerScreen1 = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {categoryBudgets.map((category, index) => {
-                const icon = NIGERIAN_CATEGORY_ICONS[category.category] || 'folder';
-                const colors = NIGERIAN_CATEGORY_COLORS[category.category] || {
+                const icon = NIGERIAN_CATEGORY_ICONS[category.category as keyof typeof NIGERIAN_CATEGORY_ICONS] || 'folder';
+                const colors = NIGERIAN_CATEGORY_COLORS[category.category as keyof typeof NIGERIAN_CATEGORY_COLORS] || {
                   bg: 'bg-gray-100 dark:bg-gray-700/20',
                   text: 'text-gray-600 dark:text-gray-400'
                 };

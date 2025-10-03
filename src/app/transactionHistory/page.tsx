@@ -1,7 +1,7 @@
 // src/app/transactionHistory/page.tsx
 
 'use client'
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useSession } from 'next-auth/react';
@@ -10,16 +10,16 @@ import MainNavigation from '../components/MainNavigation';
 import AuthButtons from '../components/AuthButtons';
 import '../../lib/fontawesome';
 
-const TransactionHistoryPage = () => {
+function TransactionHistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   
   // State management
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   
   // Enhanced filter states with URL persistence
   const [filters, setFilters] = useState({
@@ -54,15 +54,15 @@ const TransactionHistoryPage = () => {
     formattedAvgAmount: '₦0'
   });
 
-  const [categoryBreakdown, setCategoryBreakdown] = useState([]);
-  const [spendingPatterns, setSpendingPatterns] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({});
+  const [categoryBreakdown, setCategoryBreakdown] = useState<any[]>([]);
+  const [spendingPatterns, setSpendingPatterns] = useState<any>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [aiInsightsVisible, setAiInsightsVisible] = useState(false);
 
   // Update URL when filters change
-  const updateURL = useCallback((newFilters) => {
+  const updateURL = useCallback((newFilters: any) => {
     const params = new URLSearchParams();
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value && value !== 'allCats' && value !== 'allTrans' && value !== 'anyAmt' && value !== '' && value !== 1 && value !== 10) {
@@ -127,7 +127,7 @@ const TransactionHistoryPage = () => {
   }, [session, fetchTransactions]);
 
   // Handle filter changes
-  const handleFilterChange = (filterType, value) => {
+  const handleFilterChange = (filterType: string, value: any) => {
     setFilters(prev => ({
       ...prev,
       [filterType]: value,
@@ -136,13 +136,13 @@ const TransactionHistoryPage = () => {
   };
 
   // Handle pagination
-  const handlePageChange = (newPage) => {
+  const handlePageChange = (newPage: number) => {
     setFilters(prev => ({ ...prev, page: newPage }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handle search
-  const handleSearch = (query) => {
+  const handleSearch = (query: string) => {
     setSearchQuery(query);
     setFilters(prev => ({ ...prev, page: 1 }));
   };
@@ -159,7 +159,7 @@ const TransactionHistoryPage = () => {
   };
 
   // Handle delete transaction
-  const handleDelete = async (transactionId) => {
+  const handleDelete = async (transactionId: string) => {
     if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
       return;
     }
@@ -178,7 +178,7 @@ const TransactionHistoryPage = () => {
       toast.success('Transaction deleted successfully');
       
       if (result.warnings?.length > 0) {
-        result.warnings.forEach(warning => toast.warning(warning));
+        result.warnings.forEach((warning: string) => toast.warning(warning));
       }
 
       if (result.budgetImpact) {
@@ -194,7 +194,7 @@ const TransactionHistoryPage = () => {
   };
 
   // Handle flag/unflag transaction
-  const handleFlag = async (transactionId, currentStatus) => {
+  const handleFlag = async (transactionId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'flagged' ? 'completed' : 'flagged';
     
     try {
@@ -219,7 +219,7 @@ const TransactionHistoryPage = () => {
   };
 
   // Handle edit transaction
-  const handleEdit = (transaction) => {
+  const handleEdit = (transaction: any) => {
     setEditingId(transaction._id);
     setEditData({
       type: transaction.type,
@@ -270,7 +270,7 @@ const TransactionHistoryPage = () => {
   };
 
   // Helper function to get category icon and color
-  const getCategoryDisplay = (category, type) => {
+  const getCategoryDisplay = (category: string, type: string) => {
     const iconMap = {
       'Food & Dining': { icon: 'utensils', bgClass: 'bg-orange-100 dark:bg-orange-900/20', textClass: 'text-orange-600 dark:text-orange-400' },
       'Transport': { icon: 'car', bgClass: 'bg-blue-100 dark:bg-blue-900/20', textClass: 'text-blue-600 dark:text-blue-400' },
@@ -290,7 +290,7 @@ const TransactionHistoryPage = () => {
       ? { icon: 'money-bill-wave', bgClass: 'bg-green-100 dark:bg-green-900/20', textClass: 'text-green-600 dark:text-green-400' }
       : { icon: 'receipt', bgClass: 'bg-gray-100 dark:bg-gray-900/20', textClass: 'text-gray-600 dark:text-gray-400' };
 
-    return iconMap[category] || defaultDisplay;
+    return iconMap[category as keyof typeof iconMap] || defaultDisplay;
   };
 
   if (status === 'loading') {
@@ -413,7 +413,7 @@ const TransactionHistoryPage = () => {
               <div>
                 <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-2">Spending Patterns</h4>
                 <div className="space-y-2">
-                  {spendingPatterns.insights?.slice(0, 3).map((insight, index) => (
+                  {spendingPatterns.insights?.slice(0, 3).map((insight: any, index: number) => (
                     <div key={index} className="flex items-start space-x-2">
                       <FontAwesomeIcon icon="lightbulb" className="text-yellow-500 mt-0.5 text-xs" />
                       <span className="text-sm text-purple-700 dark:text-purple-300">{insight}</span>
@@ -777,7 +777,7 @@ const TransactionHistoryPage = () => {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <div className={`p-2 rounded-lg ${categoryDisplay.bgClass}`}>
-                                <FontAwesomeIcon icon={categoryDisplay.icon} className={`${categoryDisplay.textClass} text-sm`} />
+                                <FontAwesomeIcon icon={categoryDisplay.icon as any} className={`${categoryDisplay.textClass} text-sm`} />
                               </div>
                               <div>
                                 <div className="font-medium text-gray-900 dark:text-white">
@@ -847,7 +847,7 @@ const TransactionHistoryPage = () => {
                         <div className="hidden md:contents">
                           <div className="col-span-4 flex items-center">
                             <div className={`p-2 rounded-lg mr-3 ${categoryDisplay.bgClass}`}>
-                              <FontAwesomeIcon icon={categoryDisplay.icon} className={categoryDisplay.textClass} />
+                              <FontAwesomeIcon icon={categoryDisplay.icon as any} className={categoryDisplay.textClass} />
                             </div>
                             <div>
                               <div className="font-medium flex items-center text-gray-700 dark:text-gray-300">
@@ -987,7 +987,7 @@ const TransactionHistoryPage = () => {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center">
                         <div className={`p-2 rounded-lg mr-2 ${categoryDisplay.bgClass}`}>
-                          <FontAwesomeIcon icon={categoryDisplay.icon} className={`${categoryDisplay.textClass} text-sm`} />
+                          <FontAwesomeIcon icon={categoryDisplay.icon as any} className={`${categoryDisplay.textClass} text-sm`} />
                         </div>
                         <span className="font-medium text-gray-900 dark:text-white text-sm">
                           {category.category}
@@ -1032,6 +1032,19 @@ const TransactionHistoryPage = () => {
       <div className="h-20 md:h-0"></div>
     </div>
   );
-};
+}
 
-export default TransactionHistoryPage;
+export default function TransactionHistoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading transactions...</p>
+        </div>
+      </div>
+    }>
+      <TransactionHistoryContent />
+    </Suspense>
+  );
+}

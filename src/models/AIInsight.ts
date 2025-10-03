@@ -489,6 +489,7 @@ AIInsightSchema.statics.generateBudgetAlert = async function(
       dataId: budgetData.budgetId
     },
     displayConditions: {
+      displayCount: 0,
       maxDisplayCount: 1,
       validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     },
@@ -594,5 +595,7 @@ AIInsightSchema.statics.cleanupExpiredInsights = async function(): Promise<numbe
   return result.modifiedCount;
 };
 
-export default mongoose.models.AIInsight || 
-  mongoose.model<IAIInsight, IAIInsightModel>('AIInsight', AIInsightSchema);
+const AIInsight = (mongoose.models.AIInsight ||
+  mongoose.model<IAIInsight, IAIInsightModel>('AIInsight', AIInsightSchema)) as IAIInsightModel;
+
+export default AIInsight;

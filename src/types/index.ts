@@ -256,6 +256,11 @@ export interface INotificationData {
   threshold?: number;
   actions?: INotificationAction[];
   progressData?: IProgressData;
+  currentSpending?: number;
+  suggestedTarget?: number;
+  potentialSavings?: number;
+  alertId?: string;
+  condition?: AlertCondition;
 }
 
 export interface INotificationMetadata {

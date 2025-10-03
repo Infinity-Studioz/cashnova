@@ -273,11 +273,7 @@ export default function PieChart({ data, loading = false }: PieChartProps) {
         },
         elements: {
           arc: {
-            hoverBackgroundColor: function (context) {
-              const originalColor = context.element.options.backgroundColor;
-              // Darken the color on hover
-              return Chart.helpers.color(originalColor).alpha(0.8).rgbString();
-            }
+            // Hover effects handled by default
           }
         }
       },

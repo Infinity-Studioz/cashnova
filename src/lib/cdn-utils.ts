@@ -86,10 +86,10 @@ export class CDNManager {
 
 // Helper function for Next.js Image component
 export function getOptimizedImageProps(src: string, alt: string) {
+  const responsiveUrls = CDNManager.getResponsiveImageUrls(src);
   return {
-    src: CDNManager.getAssetUrl(src),
     alt,
     loading: 'lazy' as const,
-    ...CDNManager.getResponsiveImageUrls(src)
+    ...responsiveUrls
   };
 }

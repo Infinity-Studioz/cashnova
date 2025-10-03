@@ -6,6 +6,9 @@ import Goal from '@/models/Goal';
 import Transaction from '@/models/Transaction';
 import { authOptions } from '@/utils/authOptions';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

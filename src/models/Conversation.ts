@@ -58,12 +58,15 @@ export interface IConversation extends IBaseDocument {
   addMessage(role: IMessage['role'], content: string, metadata?: IMessage['metadata']): Promise<IConversation>;
   generateSummary(): void;
   markActionItemComplete(actionId: string): Promise<IConversation>;
+  extractMainTopics(): string[];
 }
 
 export interface IConversationModel extends mongoose.Model<IConversation> {
   createFinancialCoachSession(userId: string, initialQuery: string, context?: IConversation['context']): Promise<IConversation>;
   getUserActiveConversations(userId: string, limit?: number): Promise<IConversation[]>;
   searchConversations(userId: string, query: string): Promise<IConversation[]>;
+  generateConversationTitle(query: string, context: IConversation['context']): string;
+  generateInitialInsights(context: IConversation['context']): string[];
 }
 
 const MessageSchema: Schema = new Schema({
@@ -272,7 +275,7 @@ ConversationSchema.statics.createFinancialCoachSession = async function(
   initialQuery: string,
   context: IConversation['context'] = 'general_finance'
 ): Promise<IConversation> {
-  const title = this.generateConversationTitle(initialQuery, context);
+  const title = (this as unknown as IConversationModel).generateConversationTitle(initialQuery, context);
   
   const conversation = new this({
     userId,
@@ -290,7 +293,7 @@ ConversationSchema.statics.createFinancialCoachSession = async function(
   });
 
   // Generate initial Nigerian insights based on context
-  conversation.nigerianInsights = this.generateInitialInsights(context);
+  conversation.nigerianInsights = (this as unknown as IConversationModel).generateInitialInsights(context);
   
   await conversation.save();
   return conversation;
@@ -392,5 +395,7 @@ ConversationSchema.statics.searchConversations = function(
   .limit(20);
 };
 
-export default mongoose.models.Conversation || 
-  mongoose.model<IConversation, IConversationModel>('Conversation', ConversationSchema);
+const Conversation = (mongoose.models.Conversation ||
+  mongoose.model<IConversation, IConversationModel>('Conversation', ConversationSchema)) as IConversationModel;
+
+export default Conversation;

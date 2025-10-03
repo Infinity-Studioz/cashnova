@@ -372,5 +372,7 @@ GoalSchema.pre("save", function (this: IGoal) {
   }
 });
 
-export default mongoose.models.Goal ||
-  mongoose.model<IGoal, IGoalModel>("Goal", GoalSchema);
+const Goal = (mongoose.models.Goal ||
+  mongoose.model<IGoal, IGoalModel>("Goal", GoalSchema)) as IGoalModel;
+
+export default Goal;

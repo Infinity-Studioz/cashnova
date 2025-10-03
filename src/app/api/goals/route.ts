@@ -135,7 +135,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Enhanced goals with virtual fields and Nigerian context
     const currentDate = new Date();
-    const enhancedGoals: EnhancedGoal[] = goals.map((goal) => {
+    const enhancedGoals = goals.map((goal) => {
       const goalObj = goal.toObject({ virtuals: true }) as IGoal;
 
       // Add calculated fields that match your existing model structure
@@ -252,7 +252,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const response: GoalsApiResponse = {
+    const response = {
       success: true,
       goals: enhancedGoals,
       summary,
@@ -363,7 +363,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       targetAmount,
       currentAmount,
       category,
-      deadline: deadlineDate,
+      deadline: deadlineDate || undefined,
       priority: priority || "medium",
       isActive: true,
       isCompleted: false,

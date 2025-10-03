@@ -253,5 +253,6 @@ library.add(
   faFileInvoice,
   faFingerprint,
   faQuestionCircle,
-  faDatabase
+  faDatabase,
+  faCalendarXmark
 );

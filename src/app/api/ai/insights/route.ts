@@ -8,6 +8,7 @@ import Budget from '@/models/Budget';
 import CategoryBudget from '@/models/CategoryBudget';
 import Goal from '@/models/Goal';
 import { authOptions } from '@/utils/authOptions';
+import { Types } from 'mongoose';
 
 // GET - Fetch user's pending insights
 export async function GET(request: NextRequest) {
@@ -28,17 +29,31 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status') || 'pending';
 
-    // Get user's insights using the model method
-    const insights = await AIInsight.getUserPendingInsights(
-      session.user.email,
-      category || undefined
-    );
+    // Build query
+    const query: any = {
+      userId: session.user.email,
+      status: status
+    };
 
-    // Clean up expired insights
-    await AIInsight.cleanupExpiredInsights();
+    if (category) {
+      query.category = category;
+    }
+
+    // Get user's insights
+    const insights = await AIInsight.find(query)
+      .sort({ priority: -1, createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    // Clean up expired insights (30 days old)
+    await AIInsight.deleteMany({
+      userId: session.user.email,
+      createdAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      status: { $in: ['dismissed', 'acted_upon'] }
+    });
 
     // Format insights for response
-    const formattedInsights = insights.map(insight => ({
+    const formattedInsights = insights.map((insight: any) => ({
       id: insight._id.toString(),
       type: insight.type,
       category: insight.category,
@@ -131,16 +146,37 @@ export async function POST(request: NextRequest) {
         });
 
         for (const spending of recentSpending) {
-          const categoryBudget = categoryBudgets.find(b => b.category === spending._id);
+          const categoryBudget = categoryBudgets.find((b: any) => b.category === spending._id);
           if (categoryBudget) {
             const percentageOfBudget = (spending.totalSpent / categoryBudget.allocated) * 100;
             
             if (percentageOfBudget > 75 || force) {
-              const insight = await AIInsight.generateSpendingInsight(session.user.email, {
+              const insight = await AIInsight.create({
+                userId: session.user.email,
+                type: 'spending_pattern',
                 category: spending._id,
-                percentageOfBudget: Math.round(percentageOfBudget),
-                potentialSavings: Math.max(0, spending.totalSpent - categoryBudget.allocated),
-                transactionCount: spending.transactionCount
+                title: `High ${spending._id} Spending Detected`,
+                message: `You've spent ${Math.round(percentageOfBudget)}% of your ${spending._id} budget this month. Consider reviewing your spending in this category.`,
+                priority: percentageOfBudget > 90 ? 'high' : 'medium',
+                status: 'pending',
+                confidence: 0.85,
+                impact: percentageOfBudget > 90 ? 'high' : 'medium',
+                actionable: true,
+                metrics: {
+                  percentageOfBudget: Math.round(percentageOfBudget),
+                  potentialSavings: Math.max(0, spending.totalSpent - categoryBudget.allocated),
+                  transactionCount: spending.transactionCount
+                },
+                actions: [
+                  { label: 'View Budget', type: 'navigate', value: '/budget-planner' },
+                  { label: 'Review Transactions', type: 'navigate', value: '/transactionHistory' }
+                ],
+                nigerianContext: {
+                  relevantToEconomy: true,
+                  seasonalFactor: false
+                },
+                tags: ['spending', 'budget', 'warning'],
+                isPersonalized: true
               });
               
               generatedInsights.push(insight);
@@ -166,11 +202,34 @@ export async function POST(request: NextRequest) {
             (categoryBudget.spent / categoryBudget.allocated) * 100 : 0;
           
           if (percentageUsed >= 90 || force) {
-            const insight = await AIInsight.generateBudgetAlert(session.user.email, {
-              categoryName: categoryBudget.category,
-              percentageUsed: Math.round(percentageUsed),
-              remaining: categoryBudget.allocated - categoryBudget.spent,
-              budgetId: categoryBudget._id.toString()
+            const remaining = categoryBudget.allocated - categoryBudget.spent;
+            
+            const insight = await AIInsight.create({
+              userId: session.user.email,
+              type: 'budget_alert',
+              category: categoryBudget.category,
+              title: `${categoryBudget.category} Budget Alert`,
+              message: `You've used ${Math.round(percentageUsed)}% of your ${categoryBudget.category} budget. Only ₦${remaining.toLocaleString()} remaining.`,
+              priority: percentageUsed >= 100 ? 'critical' : 'high',
+              status: 'pending',
+              confidence: 0.95,
+              impact: 'high',
+              actionable: true,
+              metrics: {
+                percentageUsed: Math.round(percentageUsed),
+                remaining: remaining,
+                budgetId: categoryBudget._id.toString()
+              },
+              actions: [
+                { label: 'Adjust Budget', type: 'navigate', value: '/budget-planner' },
+                { label: 'View Spending', type: 'navigate', value: '/transactionHistory' }
+              ],
+              nigerianContext: {
+                relevantToEconomy: true,
+                seasonalFactor: false
+              },
+              tags: ['budget', 'alert', 'urgent'],
+              isPersonalized: true
             });
             
             generatedInsights.push(insight);
@@ -209,12 +268,32 @@ export async function POST(request: NextRequest) {
           if (pattern.totalSpent > 20000 || force) {
             const potentialSavings = Math.round(pattern.totalSpent * 0.15); // 15% savings potential
             
-            const insight = await AIInsight.generateSavingsOpportunity(session.user.email, {
+            const insight = await AIInsight.create({
+              userId: session.user.email,
+              type: 'savings_opportunity',
               category: pattern._id,
-              potentialSavings,
-              suggestion: `reducing ${pattern._id.toLowerCase()} expenses by 15%`,
-              analysisPoints: pattern.count,
-              transactionId: null
+              title: `Savings Opportunity in ${pattern._id}`,
+              message: `You could potentially save ₦${potentialSavings.toLocaleString()} by reducing ${pattern._id.toLowerCase()} expenses by 15%.`,
+              priority: 'medium',
+              status: 'pending',
+              confidence: 0.70,
+              impact: 'medium',
+              actionable: true,
+              metrics: {
+                potentialSavings,
+                currentSpending: pattern.totalSpent,
+                analysisPoints: pattern.count
+              },
+              actions: [
+                { label: 'Create Savings Goal', type: 'navigate', value: '/goals' },
+                { label: 'Review Category', type: 'navigate', value: '/transactionHistory' }
+              ],
+              nigerianContext: {
+                relevantToEconomy: true,
+                seasonalFactor: false
+              },
+              tags: ['savings', 'opportunity', 'optimization'],
+              isPersonalized: true
             });
             
             generatedInsights.push(insight);
@@ -228,7 +307,49 @@ export async function POST(request: NextRequest) {
     // Generate Nigerian economic insights
     if (!type || type === 'nigerian_economy') {
       try {
-        const economicInsight = await AIInsight.generateNigerianEconomicInsight(session.user.email);
+        const currentMonth = new Date().getMonth() + 1;
+        const isSchoolFeeSeason = [1, 9].includes(currentMonth);
+        const isFestiveSeason = [12, 1].includes(currentMonth);
+        
+        let economicMessage = 'Monitor your spending closely as Nigerian economic conditions remain volatile.';
+        let economicTitle = 'Nigerian Economic Update';
+        
+        if (isSchoolFeeSeason) {
+          economicMessage = 'School fees season is here. Ensure you have budgeted for education expenses in January and September.';
+          economicTitle = 'School Fees Season Alert';
+        } else if (isFestiveSeason) {
+          economicMessage = 'Festive season spending is high. Set aside funds for celebrations while maintaining your savings goals.';
+          economicTitle = 'Festive Season Financial Planning';
+        }
+        
+        const economicInsight = await AIInsight.create({
+          userId: session.user.email,
+          type: 'nigerian_economic',
+          category: 'Economic Context',
+          title: economicTitle,
+          message: economicMessage,
+          priority: 'medium',
+          status: 'pending',
+          confidence: 0.90,
+          impact: 'medium',
+          actionable: true,
+          metrics: {},
+          actions: [
+            { label: 'Review Budget', type: 'navigate', value: '/budget-planner' },
+            { label: 'Set Financial Goals', type: 'navigate', value: '/goals' }
+          ],
+          nigerianContext: {
+            relevantToEconomy: true,
+            seasonalFactor: isSchoolFeeSeason || isFestiveSeason,
+            economicIndicators: {
+              inflationAlert: false,
+              currencyVolatility: false
+            }
+          },
+          tags: ['nigerian', 'economy', 'seasonal'],
+          isPersonalized: true
+        });
+        
         generatedInsights.push(economicInsight);
       } catch (error) {
         console.error('Error generating Nigerian economic insights:', error);
@@ -238,7 +359,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Generated ${generatedInsights.length} new insights`,
-      insights: generatedInsights.map(insight => ({
+      insights: generatedInsights.map((insight: any) => ({
         id: insight._id.toString(),
         type: insight.type,
         title: insight.title,
@@ -306,25 +427,48 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update insight based on action
-    let updatedInsight;
-    
     if (action === 'act_upon') {
-      updatedInsight = await insight.markAsActedUpon('user_action');
+      insight.status = 'acted_upon';
+      insight.userInteraction = {
+        viewedAt: new Date(),
+        actedUponAt: new Date(),
+        actionTaken: 'user_action',
+        feedbackScore: feedbackScore || undefined
+      };
     } else if (action === 'dismiss') {
-      updatedInsight = await insight.dismiss();
+      insight.status = 'dismissed';
+      insight.userInteraction = {
+        viewedAt: new Date(),
+        dismissedAt: new Date(),
+        feedbackScore: feedbackScore || undefined
+      };
     } else if (action === 'feedback' && feedbackScore) {
-      updatedInsight = await insight.updateEngagement(feedbackScore);
+      if (!insight.userInteraction) {
+        insight.userInteraction = {
+          viewedAt: new Date()
+        };
+      }
+      insight.userInteraction.feedbackScore = feedbackScore;
     } else {
-      updatedInsight = await insight.markAsDisplayed();
+      // Mark as displayed
+      insight.status = 'displayed';
+      if (!insight.userInteraction) {
+        insight.userInteraction = {
+          viewedAt: new Date(),
+          lastDisplayedAt: new Date()
+        };
+      }
     }
+
+    await insight.save();
 
     return NextResponse.json({
       success: true,
       message: 'Insight updated successfully',
       insight: {
-        id: updatedInsight._id.toString(),
-        status: updatedInsight.status,
-        userInteraction: updatedInsight.userInteraction
+        id: (insight._id as Types.ObjectId).toString(),
+        status: insight.status,
+        userInteraction: insight.userInteraction
       }
     });
 

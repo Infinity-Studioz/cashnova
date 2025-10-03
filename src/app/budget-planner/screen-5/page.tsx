@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import MainNavigation from '@/app/components/MainNavigation'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { IconName } from '@fortawesome/fontawesome-svg-core'
 import DayDetailsModal from '@/app/components/DayDetailsModal'
 import '../../../lib/fontawesome'
 
@@ -53,7 +54,7 @@ interface CalendarData {
     formattedAmount: string;
     dueDate: string;
     category: string;
-    icon: string;
+    icon: IconName;
   }>;
 }
 
@@ -322,7 +323,7 @@ const BudgetCalendarPage = () => {
         formattedAmount: formatCurrency(50000),
         dueDate: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1).toISOString().slice(0, 10),
         category: 'Housing',
-        icon: 'home'
+        icon: 'home' as IconName
       },
       {
         name: 'Electricity Bill',
@@ -330,7 +331,7 @@ const BudgetCalendarPage = () => {
         formattedAmount: formatCurrency(15000),
         dueDate: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 15).toISOString().slice(0, 10),
         category: 'Bills',
-        icon: 'bolt'
+        icon: 'bolt' as IconName
       },
       {
         name: 'Internet',
@@ -338,13 +339,13 @@ const BudgetCalendarPage = () => {
         formattedAmount: formatCurrency(8500),
         dueDate: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 27).toISOString().slice(0, 10),
         category: 'Bills',
-        icon: 'wifi'
+        icon: 'wifi' as IconName
       }
     ];
   };
 
-  const getCategoryIcon = (category: string): string => {
-    const iconMap: Record<string, string> = {
+  const getCategoryIcon = (category: string): IconName => {
+    const iconMap: Record<string, IconName> = {
       'Housing': 'home',
       'Rent/Housing': 'home',
       'Bills': 'bolt',
@@ -356,7 +357,7 @@ const BudgetCalendarPage = () => {
       'Education': 'graduation-cap',
       'Family Support': 'heart'
     };
-    return iconMap[category] || 'file-invoice-dollar';
+    return (iconMap[category] || 'file-invoice-dollar') as IconName;
   };
 
   const formatCurrency = (amount: number): string => {

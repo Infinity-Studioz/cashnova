@@ -693,6 +693,7 @@ import MainNavigation from '@/app/components/MainNavigation'
 import '../../../lib/fontawesome'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { IconName } from '@fortawesome/fontawesome-svg-core'
 import ToggleSwitch from '@/app/components/ToggleSwitch'
 
 interface AlertSettings {
@@ -1029,18 +1030,18 @@ const BudgetAlertsPage = () => {
     }
   };
 
-  const getNotificationIcon = (type: string): string => {
+  const getNotificationIcon = (type: string): IconName => {
     switch (type) {
-      case 'category_threshold': return 'percent';
-      case 'budget_exceeded': return 'exclamation-triangle';
-      case 'weekly_summary': return 'envelope-open-text';
-      case 'salary_reminder': return 'money-bill-wave';
-      case 'school_fee_alert': return 'graduation-cap';
-      case 'savings_tip': return 'lightbulb';
-      case 'transport_price_alert': return 'bus';
-      // case 'festive_season_warning': return 'calendar-star';
-      case 'festive_season_warning': return 'calendar-check';
-      default: return 'bell';
+      case 'category_threshold': return 'percent' as IconName;
+      case 'budget_exceeded': return 'exclamation-triangle' as IconName;
+      case 'weekly_summary': return 'envelope-open-text' as IconName;
+      case 'salary_reminder': return 'money-bill-wave' as IconName;
+      case 'school_fee_alert': return 'graduation-cap' as IconName;
+      case 'savings_tip': return 'lightbulb' as IconName;
+      case 'transport_price_alert': return 'bus' as IconName;
+      // case 'festive_season_warning': return 'calendar-star' as IconName;
+      case 'festive_season_warning': return 'calendar-check' as IconName;
+      default: return 'bell' as IconName;
     }
   };
 

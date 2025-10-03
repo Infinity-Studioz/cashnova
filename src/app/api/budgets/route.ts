@@ -147,11 +147,28 @@ export async function GET(request: NextRequest) {
         // Generate AI insights for this category
         let aiInsight = null;
         if (percentageUsed > 90) {
-          aiInsight = await AIInsight.generateBudgetAlert(session.user.email, {
-            categoryName: catBudget.category,
-            percentageUsed: Math.round(percentageUsed),
-            remaining,
-            budgetId: catBudget._id,
+          aiInsight = await AIInsight.create({
+            userId: session.user.email,
+            type: "budget_alert",
+            category: catBudget.category,
+            title: `${catBudget.category} Budget Alert`,
+            message: `You've used ${Math.round(percentageUsed)}% of your ${catBudget.category} budget. Only ₦${remaining.toLocaleString()} remaining.`,
+            priority: percentageUsed >= 100 ? "critical" : "high",
+            status: "pending",
+            confidence: 0.95,
+            impact: "high",
+            actionable: true,
+            metrics: {
+              percentageUsed: Math.round(percentageUsed),
+              remaining: remaining,
+              budgetId: catBudget._id.toString(),
+            },
+            nigerianContext: {
+              relevantToEconomy: true,
+              seasonalFactor: false,
+            },
+            tags: ["budget", "alert"],
+            isPersonalized: true,
           });
         }
 
@@ -342,11 +359,37 @@ async function generateNigerianBudgetInsights(
     for (const category of overspentCategories.slice(0, 2)) {
       // Limit to 2
       try {
-        const aiInsight = await AIInsight.generateBudgetAlert(userId, {
-          categoryName: category.category,
-          percentageUsed: category.percentageUsed,
-          remaining: category.remaining,
-          budgetId: category._id,
+        const aiInsight = await AIInsight.create({
+          userId: userId,
+          type: "budget_alert",
+          category: category.category,
+          title: `${category.category} Budget Alert`,
+          message: `You've used ${Math.round(category.percentageUsed)}% of your ${category.category} budget. Only ₦${category.remaining.toLocaleString()} remaining.`,
+          priority: category.percentageUsed >= 100 ? "critical" : "high",
+          status: "pending",
+          confidence: 0.95,
+          impact: "high",
+          actionable: true,
+          metrics: {
+            percentageUsed: Math.round(category.percentageUsed),
+            remaining: category.remaining,
+            budgetId: category._id.toString(),
+          },
+          nigerianContext: {
+            relevantToEconomy: true,
+            seasonalFactor: false,
+          },
+          tags: ["budget", "alert"],
+          isPersonalized: true,
+        });
+
+        insights.push({
+          type: "warning",
+          title: aiInsight.title,
+          message: aiInsight.message,
+          category: category.category,
+          action: "adjust_budget",
+          aiGenerated: true,
         });
 
         insights.push({
@@ -588,12 +631,26 @@ export async function POST(request: NextRequest) {
     // Generate AI insights if this was an AI-generated budget
     if (aiGenerated) {
       try {
-        await AIInsight.generateBudgetCreationInsight(session.user.email, {
-          budgetId: updatedBudget._id.toString(),
-          totalBudget,
-          categoriesCount: categories.length,
-          budgetScore,
-          nigerianContext,
+        await AIInsight.create({
+          userId: session.user.email,
+          type: "budget_created",
+          category: "Budget Planning",
+          title: "New Budget Created",
+          message: `Your ${month} budget of ₦${totalBudget.toLocaleString()} has been created with ${categories.length} categories.`,
+          priority: "medium",
+          status: "pending",
+          confidence: 0.9,
+          impact: "medium",
+          actionable: true,
+          metrics: {
+            budgetId: updatedBudget._id.toString(),
+            totalBudget,
+            categoriesCount: categories.length,
+            budgetScore,
+          },
+          nigerianContext: nigerianContext,
+          tags: ["budget", "planning"],
+          isPersonalized: true,
         });
       } catch (insightError) {
         console.error(

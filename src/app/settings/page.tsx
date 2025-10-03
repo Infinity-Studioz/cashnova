@@ -1124,13 +1124,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Image from 'next/image'
 import '../../lib/fontawesome'
 
-// Types based on your models
+// Types based on your models - STREAMLINED for MVP
 interface UserSettings {
-  currency: 'NGN' | 'USD' | 'EUR' | 'GBP';
-  locale: 'en-NG' | 'en-US' | 'en-GB';
+  currency: 'NGN'; // Nigerian Naira only
   theme: 'light' | 'dark' | 'system';
-  dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
-  deviceSecurity: boolean; // Consolidated: App Lock + Biometric
   notifications: {
     budgetAlerts: boolean;
     weeklySummary: boolean;
@@ -1171,15 +1168,7 @@ interface AlertSettings {
   };
 }
 
-interface BankConnection {
-  _id: string;
-  bankName: string;
-  accountNumber: string;
-  accountType: string;
-  status: 'active' | 'inactive' | 'error';
-  linkedAt: string;
-  lastSync?: string;
-}
+// REMOVED: BankConnection interface - Post-launch feature
 
 // Collapsible Section Component
 const CollapsibleSection = ({ 
@@ -1224,18 +1213,16 @@ const CollapsibleSection = ({
 export default function SettingsPage() {
   const { data: session, status } = useSession();
 
-  // State management
+  // State management - STREAMLINED for MVP
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
-  const [bankConnections, setBankConnections] = useState<BankConnection[]>([]);
   const [activeEditModal, setActiveEditModal] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [formData, setFormData] = useState<any>({});
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -1246,7 +1233,6 @@ export default function SettingsPage() {
       await Promise.all([
         fetchUserSettings(),
         fetchAlertSettings(),
-        fetchBankConnections(),
       ]);
       setLoading(false);
     };
@@ -1266,10 +1252,7 @@ export default function SettingsPage() {
       } else {
         const defaultSettings: UserSettings = {
           currency: 'NGN',
-          locale: 'en-NG',
           theme: 'system',
-          dateFormat: 'DD/MM/YYYY',
-          deviceSecurity: false,
           notifications: {
             budgetAlerts: true,
             weeklySummary: true,
@@ -1330,19 +1313,7 @@ export default function SettingsPage() {
     }
   };
 
-  const fetchBankConnections = async () => {
-    try {
-      const response = await fetch('/api/bank-connections');
-      if (response.ok) {
-        const data = await response.json();
-        setBankConnections(data.connections || []);
-      }
-    } catch (error) {
-      console.error('Error fetching bank connections:', error);
-      // Mock data for development
-      setBankConnections([]);
-    }
-  };
+  // REMOVED: fetchBankConnections - Post-launch feature
 
   // Save functions
   const saveUserSettings = async (updatedSettings: Partial<UserSettings>) => {
@@ -1397,15 +1368,13 @@ export default function SettingsPage() {
     }
   };
 
-  // Toggle handlers
+  // Toggle handlers - STREAMLINED for MVP
   const handleSettingToggle = (setting: keyof UserSettings, value?: any) => {
     if (!userSettings) return;
 
     let updatedSettings: Partial<UserSettings> = { ...userSettings };
 
-    if (setting === 'deviceSecurity') {
-      updatedSettings.deviceSecurity = !userSettings.deviceSecurity;
-    } else if (setting === 'theme' || setting === 'currency' || setting === 'locale' || setting === 'dateFormat') {
+    if (setting === 'theme') {
       updatedSettings[setting] = value;
     }
 
@@ -1662,7 +1631,7 @@ export default function SettingsPage() {
               {/* Account Linking */}
               <AccountLinking />
 
-              {/* CONSOLIDATED Security Settings */}
+              {/* STREAMLINED Security Settings - Launch Essentials Only */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                 <div className="border-b border-gray-200 dark:border-gray-700 p-4">
                   <h3 className="font-medium text-gray-900 dark:text-white flex items-center">
@@ -1671,69 +1640,46 @@ export default function SettingsPage() {
                   </h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  
-                  {/* MERGED: Device Security (was App Lock + Biometric) */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <FontAwesomeIcon icon={'fingerprint'} className="text-primary" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          Device Security
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          PIN, fingerprint, or face unlock
-                        </p>
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      checked={userSettings?.deviceSecurity || false}
-                      onChange={() => handleSettingToggle('deviceSecurity')}
-                      disabled={saveLoading}
-                    />
-                  </div>
 
-                  {/* IMPROVED: 2FA with Status */}
+                  {/* Password Change */}
                   <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors">
                     <div className="flex items-center space-x-3">
                       <FontAwesomeIcon icon={'lock'} className="text-primary" />
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          Two-Factor Authentication
+                          Change Password
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                          {twoFactorEnabled ? (
-                            <>
-                              <FontAwesomeIcon icon={'check-circle'} className="text-green-500 mr-1" />
-                              Enabled via SMS
-                            </>
-                          ) : (
-                            'Not enabled'
-                          )}
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Update your account password
                         </p>
                       </div>
-                    </div>
-                    <button
-                      className="text-primary dark:text-primary-light text-sm font-medium hover:underline"
-                      onClick={() => toast.info('2FA setup coming soon')}
-                    >
-                      {twoFactorEnabled ? 'Manage' : 'Enable'}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        Change Password
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Last changed 3 months ago
-                      </p>
                     </div>
                     <button
                       className="text-primary dark:text-primary-light text-sm font-medium hover:underline"
                       onClick={() => toast.info('Password change coming soon')}
                     >
                       Change
+                    </button>
+                  </div>
+
+                  {/* Session Management */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <FontAwesomeIcon icon={'clock'} className="text-primary" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Active Sessions
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Manage your login sessions
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      className="text-primary dark:text-primary-light text-sm font-medium hover:underline"
+                      onClick={() => toast.info('Session management coming soon')}
+                    >
+                      View
                     </button>
                   </div>
                 </div>
@@ -1840,85 +1786,9 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Bank Connections */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-                <div className="border-b border-gray-200 dark:border-gray-700 p-4">
-                  <h3 className="font-medium text-gray-900 dark:text-white flex items-center">
-                    <FontAwesomeIcon icon={'university'} className='mr-2 text-primary' />
-                    Bank Connections
-                  </h3>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Connected accounts ({bankConnections.length})
-                    </p>
-                    <button
-                      className="text-primary dark:text-primary-light text-sm font-medium flex items-center hover:underline"
-                      onClick={() => toast.info('Bank connection via Mono/Okra coming soon')}
-                    >
-                      <FontAwesomeIcon icon={'plus'} className='mr-1' /> Add Account
-                    </button>
-                  </div>
-
-                  {bankConnections.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <FontAwesomeIcon icon={'university'} className="text-3xl mb-3 opacity-50" />
-                      <p className="text-sm">No bank accounts connected</p>
-                      <p className="text-xs mt-1">Connect your Nigerian bank accounts for automatic transaction sync</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {bankConnections.map((bank, index) => (
-                        <div key={bank._id} className="flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            index === 0 ? 'bg-blue-50 dark:bg-blue-900/30' :
-                            index === 1 ? 'bg-green-50 dark:bg-green-900/30' :
-                            'bg-purple-50 dark:bg-purple-900/30'
-                          }`}>
-                            <FontAwesomeIcon
-                              icon={'university'}
-                              className={`${
-                                index === 0 ? 'text-blue-500 dark:text-blue-400' :
-                                index === 1 ? 'text-green-500 dark:text-green-400' :
-                                'text-purple-500 dark:text-purple-400'
-                              }`}
-                            />
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {bank.bankName}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {bank.accountNumber} • {bank.accountType}
-                            </p>
-                            <div className="flex items-center mt-1 space-x-2">
-                              <div className={`w-2 h-2 rounded-full ${
-                                bank.status === 'active' ? 'bg-green-500' :
-                                bank.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
-                              }`}></div>
-                              <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">
-                                {bank.status}
-                              </span>
-                              {bank.lastSync && (
-                                <span className="text-xs text-gray-400 dark:text-gray-500">
-                                  • Last sync: {new Date(bank.lastSync).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 p-1"
-                            onClick={() => toast.info(`Manage ${bank.bankName}`)}
-                          >
-                            <FontAwesomeIcon icon={'ellipsis-v'} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* REMOVED: Bank Connections - Post-launch feature
+                  Keeping model and API endpoint but removing UI for MVP
+                  Will integrate Mono/Okra after launch validation */}
             </div>
 
             {/* Right Column - Preferences & Notifications */}
@@ -1936,55 +1806,37 @@ export default function SettingsPage() {
                   </h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                      Currency
-                    </label>
-                    <select
-                      value={userSettings?.currency || 'NGN'}
-                      onChange={(e) => handleSettingToggle('currency', e.target.value)}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      disabled={saveLoading}
-                    >
-                      <option value="NGN">₦ Nigerian Naira (NGN)</option>
-                      <option value="USD">$ US Dollar (USD)</option>
-                      <option value="EUR">€ Euro (EUR)</option>
-                      <option value="GBP">£ British Pound (GBP)</option>
-                    </select>
+                  {/* SIMPLIFIED: Currency - NGN Only (Nigerian Focus) */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        Currency
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        ₦ Nigerian Naira (NGN)
+                      </p>
+                    </div>
+                    <div className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                      Default
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                      Language & Region
-                    </label>
-                    <select
-                      value={userSettings?.locale || 'en-NG'}
-                      onChange={(e) => handleSettingToggle('locale', e.target.value)}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      disabled={saveLoading}
-                    >
-                      <option value="en-NG">English (Nigeria)</option>
-                      <option value="en-US">English (United States)</option>
-                      <option value="en-GB">English (United Kingdom)</option>
-                    </select>
+                  {/* SIMPLIFIED: Date Format - DD/MM/YYYY Only (Nigerian Standard) */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        Date Format
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        DD/MM/YYYY (Nigerian standard)
+                      </p>
+                    </div>
+                    <div className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                      Default
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                      Date Format
-                    </label>
-                    <select
-                      value={userSettings?.dateFormat || 'DD/MM/YYYY'}
-                      onChange={(e) => handleSettingToggle('dateFormat', e.target.value)}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      disabled={saveLoading}
-                    >
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                    </select>
-                  </div>
-
+                  {/* KEEP: Theme - User preference matters */}
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                       Theme
@@ -1995,9 +1847,9 @@ export default function SettingsPage() {
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                       disabled={saveLoading}
                     >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="system">System</option>
+                      <option value="light">☀️ Light</option>
+                      <option value="dark">🌙 Dark</option>
+                      <option value="system">💻 System</option>
                     </select>
                   </div>
 

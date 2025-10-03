@@ -7,6 +7,7 @@ import AlertSettings from "@/models/AlertSettings";
 import Transaction from "@/models/Transaction";
 import Budget from "@/models/Budget";
 import { authOptions } from "@/utils/authOptions";
+import { INotification } from "@/types";
 
 export async function GET(request: NextRequest) {
   try {
@@ -325,8 +326,8 @@ export async function POST(request: NextRequest) {
 // }
 
 // Generate alerts for a specific user based on their settings and current data
-async function generateUserAlerts(userId: string): Promise<any[]> {
-  const generatedNotifications = [];
+async function generateUserAlerts(userId: string): Promise<INotification[]> {
+  const generatedNotifications: INotification[] = [];
 
   try {
     // Get user's alert settings

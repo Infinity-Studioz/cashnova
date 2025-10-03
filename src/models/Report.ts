@@ -343,7 +343,7 @@ const ReportSchema: Schema = new Schema(
 
 // Method to generate insights
 ReportSchema.methods.generateInsights = function(this: IReport): void {
-  const insights = [];
+  const insights: IReport['insights'] = [];
   
   // Positive insights
   if (this.summary.netSavings > 0) {
@@ -386,7 +386,7 @@ ReportSchema.methods.generateInsights = function(this: IReport): void {
 
 // Method to generate recommendations
 ReportSchema.methods.generateRecommendations = function(this: IReport): void {
-  const recommendations = [];
+  const recommendations: IReport['recommendations'] = [];
   
   // Savings recommendations
   if (this.savingsAnalysis.savingsRate < 20) {

@@ -101,9 +101,8 @@ const NotificationSchema: Schema = new Schema(
     },
     readAt: Date,
     dismissedAt: Date,
-    expiresAt: { 
-      type: Date,
-      index: true
+    expiresAt: {
+      type: Date
     },
     channels: {
       inApp: { type: Boolean, default: true },
@@ -191,5 +190,7 @@ NotificationSchema.methods.dismiss = function(this: INotification): Promise<INot
   return this.save();
 };
 
-export default mongoose.models.Notification || 
-  mongoose.model<INotification, INotificationModel>('Notification', NotificationSchema);
+const Notification = (mongoose.models.Notification ||
+  mongoose.model<INotification, INotificationModel>('Notification', NotificationSchema)) as INotificationModel;
+
+export default Notification;

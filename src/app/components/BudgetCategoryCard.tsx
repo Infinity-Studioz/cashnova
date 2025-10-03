@@ -12,7 +12,7 @@ interface BudgetCategoryCardProps {
   iconTextClass: string;
   categoryTitle: string;
   categorySubtitle: string;
-  crossedAmount: string;
+  crossedAmount?: string;
   minValue: number;
   maxValue: number;
   defaultValue: number;

@@ -799,7 +799,7 @@ export default function NewGoalModal({ isOpen, onClose, onGoalCreated, editGoal 
 
       if (editGoal) {
         // Update existing goal
-        const updatedGoal = await GoalsService.updateGoal(editGoal._id, goalData);
+        const updatedGoal = await GoalsService.updateGoal(editGoal._id, goalData as Partial<Goal>);
         onGoalCreated(updatedGoal);
         toast.success('Goal updated successfully!');
       } else {

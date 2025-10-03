@@ -527,6 +527,7 @@ import MainNavigation from '@/app/components/MainNavigation'
 import '../../../lib/fontawesome'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { IconName } from '@fortawesome/fontawesome-svg-core'
 import BudgetCategoryCard from '@/app/components/BudgetCategoryCard'
 
 interface AIBudgetSuggestion {
@@ -758,8 +759,8 @@ const SmartBudgetAssistant = () => {
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    const iconMap: Record<string, string> = {
+  const getCategoryIcon = (category: string): IconName => {
+    const iconMap: Record<string, IconName> = {
       'Groceries': 'shopping-basket',
       'Food & Dining': 'utensils',
       'Transport': 'car',
@@ -775,7 +776,7 @@ const SmartBudgetAssistant = () => {
       'School Fees': 'graduation-cap',
       'Data/Airtime': 'mobile-alt'
     };
-    return iconMap[category] || 'folder';
+    return (iconMap[category] || 'folder') as IconName;
   };
 
   const getCategoryColors = (category: string) => {

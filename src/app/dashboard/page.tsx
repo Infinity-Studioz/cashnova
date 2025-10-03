@@ -23,22 +23,16 @@
 // src/app/dashboard/page.tsx
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/utils/getSession";
-import MainNavigation from "../components/MainNavigation";
-import Dashboard from "../index/page";
-import '../../lib/fontawesome'
 
 const DashboardPage = async () => {
   const session = await getAuthSession();
-    
-  if (!session) redirect("/login");
-  
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <MainNavigation />
-      {/* Remove the test welcome message */}
-      <Dashboard />
-    </div>
-  )
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  // Redirect authenticated users to home page which has the dashboard
+  redirect("/");
 }
 
 export default DashboardPage;

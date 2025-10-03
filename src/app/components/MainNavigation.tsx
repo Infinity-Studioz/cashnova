@@ -281,6 +281,7 @@
 'use client'
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { IconName } from '@fortawesome/fontawesome-svg-core'
 import Image from "next/image"
 import ThemeToggle from "./ThemeToggle"
 import Link from "next/link"
@@ -445,21 +446,21 @@ const MainNavigation = () => {
     }
   };
 
-  const getNotificationIcon = (type: string): string => {
+  const getNotificationIcon = (type: string): IconName => {
     switch (type) {
       case 'category_threshold':
       case 'budget_exceeded':
-        return 'exclamation-triangle';
+        return 'exclamation-triangle' as IconName;
       case 'salary_reminder':
-        return 'money-bill-wave';
+        return 'money-bill-wave' as IconName;
       case 'school_fee_alert':
-        return 'graduation-cap';
+        return 'graduation-cap' as IconName;
       case 'savings_tip':
-        return 'lightbulb';
+        return 'lightbulb' as IconName;
       case 'bill_reminder':
-        return 'file-invoice-dollar';
+        return 'file-invoice-dollar' as IconName;
       default:
-        return 'bell';
+        return 'bell' as IconName;
     }
   };
 

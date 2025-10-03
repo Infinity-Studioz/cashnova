@@ -157,7 +157,7 @@
 //               }
 //             }
 //           }
-//         } catch (error) {
+//         } catch (error: any) {
 //           console.error('Category detection error:', error);
 //           // Fallback to basic pattern matching
 //           basicCategoryDetection();
@@ -892,13 +892,13 @@ export default function AddTransactionPage() {
   });
 
   // UI and suggestion states
-  const [merchantSuggestions, setMerchantSuggestions] = useState([]);
+  const [merchantSuggestions, setMerchantSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestedCategory, setSuggestedCategory] = useState('');
   const [categoryConfidence, setCategoryConfidence] = useState(0);
-  const [aiInsights, setAiInsights] = useState([]);
-  const [duplicateWarning, setDuplicateWarning] = useState(null);
-  const [budgetImpact, setBudgetImpact] = useState(null);
+  const [aiInsights, setAiInsights] = useState<string[]>([]);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [budgetImpact, setBudgetImpact] = useState<any>(null);
   const [recurringDetected, setRecurringDetected] = useState(false);
 
   // Enhanced AI-powered category detection with Nigerian context
@@ -943,7 +943,7 @@ export default function AddTransactionPage() {
             await checkBudgetImpact(smartCategory.category, parseFloat(formData.amount));
           }
 
-        } catch (error) {
+        } catch (error: any) {
           console.error('AI categorization error:', error);
           // Fallback to basic categorization
           const fallback = performBasicCategorization(formData.merchant);
@@ -970,7 +970,7 @@ export default function AddTransactionPage() {
   }, [formData.merchant, formData.amount, transactionType]);
 
   // Enhanced smart categorization with Nigerian intelligence
-  const performSmartCategorization = (merchant, amount, type) => {
+  const performSmartCategorization = (merchant: string, amount: string, type: string) => {
     const merchantLower = merchant.toLowerCase();
     const amountNum = parseFloat(amount);
 
@@ -1047,7 +1047,7 @@ export default function AddTransactionPage() {
   };
 
   // Basic fallback categorization
-  const performBasicCategorization = (merchant) => {
+  const performBasicCategorization = (merchant: string) => {
     if (!merchant) return null;
 
     const merchantLower = merchant.toLowerCase();
@@ -1067,7 +1067,7 @@ export default function AddTransactionPage() {
   };
 
   // Generate contextual insights based on transaction data
-  const generateTransactionInsights = (merchant, category, amount) => {
+  const generateTransactionInsights = (merchant: string, category: string, amount: string) => {
     const insights = [];
     const amountNum = parseFloat(amount);
     const currentDate = new Date();
@@ -1125,7 +1125,7 @@ export default function AddTransactionPage() {
           setDuplicateWarning(`Similar transaction found: ${result.duplicateInfo.merchant} - ${result.duplicateInfo.formattedAmount} on ${new Date(result.duplicateInfo.date).toLocaleDateString()}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       // Silently handle - duplicate detection is not critical
       console.log('Duplicate check failed:', error);
     }
@@ -1152,13 +1152,13 @@ export default function AddTransactionPage() {
           setAiInsights(prev => [...prev, `Recurring pattern detected: You've made similar ${formData.merchant} payments ${result.frequency}. Consider marking as recurring.`]);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log('Recurring detection failed:', error);
     }
   };
 
   // Check budget impact
-  const checkBudgetImpact = async (category, amount) => {
+  const checkBudgetImpact = async (category: string, amount: number) => {
     try {
       const response = await fetch('/api/budgets/impact-check', {
         method: 'POST',
@@ -1170,13 +1170,13 @@ export default function AddTransactionPage() {
         const result = await response.json();
         setBudgetImpact(result.impact);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log('Budget impact check failed:', error);
     }
   };
 
   // Enhanced merchant suggestion system
-  const handleMerchantChange = (value) => {
+  const handleMerchantChange = (value: string) => {
     setFormData(prev => ({ ...prev, merchant: value }));
 
     // Clear previous states
@@ -1198,12 +1198,12 @@ export default function AddTransactionPage() {
   };
 
   // Select merchant suggestion with auto-categorization
-  const selectSuggestion = (merchant) => {
+  const selectSuggestion = (merchant: string) => {
     setFormData(prev => ({ ...prev, merchant }));
     setShowSuggestions(false);
 
     // Auto-set category and confidence
-    const category = NIGERIAN_MERCHANTS[merchant];
+    const category = NIGERIAN_MERCHANTS[merchant as keyof typeof NIGERIAN_MERCHANTS];
     if (category) {
       setFormData(prev => ({ ...prev, category }));
       setSuggestedCategory(category);
@@ -1216,7 +1216,7 @@ export default function AddTransactionPage() {
   };
 
   // Generate merchant-specific insights
-  const generateMerchantSpecificInsights = (merchant, category) => {
+  const generateMerchantSpecificInsights = (merchant: string, category: string) => {
     const insights = [];
 
     if (merchant.includes('Uber') || merchant.includes('Bolt')) {
@@ -1239,7 +1239,7 @@ export default function AddTransactionPage() {
   };
 
   // Enhanced form submission with complete API integration
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -1278,9 +1278,9 @@ export default function AddTransactionPage() {
         aiCategorized: categoryConfidence > 0,
         categoryConfidence: categoryConfidence,
         nigerianMerchant: NIGERIAN_MERCHANTS.hasOwnProperty(formData.merchant),
-        culturalContext: NIGERIAN_CATEGORIES[transactionType].find(cat =>
+        culturalContext: NIGERIAN_CATEGORIES[transactionType as keyof typeof NIGERIAN_CATEGORIES].find(cat =>
           cat.value === (formData.category || suggestedCategory))?.cultural || false,
-        seasonalContext: NIGERIAN_CATEGORIES[transactionType].find(cat =>
+        seasonalContext: NIGERIAN_CATEGORIES[transactionType as keyof typeof NIGERIAN_CATEGORIES].find(cat =>
           cat.value === (formData.category || suggestedCategory))?.seasonal || false,
 
         // Nigerian economic context
@@ -1346,7 +1346,7 @@ export default function AddTransactionPage() {
       // Display Nigerian context recommendations
       if (result.recommendations?.length > 0) {
         setTimeout(() => {
-          result.recommendations.forEach((rec, index) => {
+          result.recommendations.forEach((rec: any, index: number) => {
             setTimeout(() => {
               toast.info(`${rec.message}`);
             }, index * 2000);
@@ -1357,7 +1357,7 @@ export default function AddTransactionPage() {
       // Display cultural and seasonal insights
       if (result.nigerianInsights?.length > 0) {
         setTimeout(() => {
-          result.nigerianInsights.forEach((insight, index) => {
+          result.nigerianInsights.forEach((insight: string, index: number) => {
             setTimeout(() => {
               toast.info(`${insight}`);
             }, (index + (result.recommendations?.length || 0)) * 2000);
@@ -1391,7 +1391,7 @@ export default function AddTransactionPage() {
         router.push('/dashboard?transaction=added');
       }, 4000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding transaction:', error);
       toast.error(error.message || 'Failed to add transaction. Please try again.');
     } finally {
@@ -1581,7 +1581,7 @@ export default function AddTransactionPage() {
                 {showSuggestions && merchantSuggestions.length > 0 && (
                   <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg dark:bg-gray-700 dark:border-gray-600 max-h-64 overflow-y-auto">
                     {merchantSuggestions.map((merchant, index) => {
-                      const category = NIGERIAN_MERCHANTS[merchant];
+                      const category = NIGERIAN_MERCHANTS[merchant as keyof typeof NIGERIAN_MERCHANTS];
                       return (
                         <button
                           key={index}
@@ -1625,7 +1625,7 @@ export default function AddTransactionPage() {
                   className="bg-gray-50 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3 transition-all"
                 >
                   <option value="">Select a category</option>
-                  {NIGERIAN_CATEGORIES[transactionType].map((cat) => (
+                  {NIGERIAN_CATEGORIES[transactionType as keyof typeof NIGERIAN_CATEGORIES].map((cat) => (
                     <option key={cat.value} value={cat.value}>
                       {cat.label}
                       {cat.popular && ' (Popular)'}
@@ -1838,7 +1838,7 @@ export default function AddTransactionPage() {
                     >
                       <div className="flex items-center space-x-2">
                         <FontAwesomeIcon
-                          icon={quick.icon}
+                          icon={quick.icon as any}
                           className="text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 transition-colors"
                         />
                         <div>

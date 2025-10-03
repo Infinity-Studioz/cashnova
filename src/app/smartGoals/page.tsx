@@ -164,7 +164,8 @@ const SmartGoalsPage = () => {
 
     // Emergency fund suggestion (always priority in Nigeria)
     const hasEmergencyFund = userGoals.some(goal => goal.category === 'emergency_fund');
-    if (!hasEmergencyFund || userGoals.find(g => g.category === 'emergency_fund')?.progressPercentage < 50) {
+    const emergencyFund = userGoals.find(g => g.category === 'emergency_fund');
+    if (!hasEmergencyFund || (emergencyFund && emergencyFund.progressPercentage < 50)) {
       suggestions.push({
         category: 'emergency_fund',
         title: 'Emergency Fund',
@@ -290,7 +291,6 @@ const SmartGoalsPage = () => {
           badge: 'Recommended',
           nigerianContext: {
             isEmergencyFund: true,
-            targetMonthsCoverage: 3,
             isSalaryLinked: true,
             festiveSeasonBuffer: false,
             isSchoolFeesGoal: false
@@ -1009,9 +1009,9 @@ const SmartGoalsPage = () => {
                             </span>
                             {goal.deadline && (
                               <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 transition-colors">
-                                {getTimeStatusIcon(goal.timeStatus, goal.daysUntilDeadline)}
+                                {getTimeStatusIcon(goal.timeStatus, goal.daysUntilDeadline ?? null)}
                                 <span className="ml-1">
-                                  {goal.daysUntilDeadline !== null
+                                  {goal.daysUntilDeadline !== null && goal.daysUntilDeadline !== undefined
                                     ? goal.daysUntilDeadline >= 0
                                       ? `${goal.daysUntilDeadline}d left`
                                       : `${Math.abs(goal.daysUntilDeadline)}d overdue`
@@ -1031,11 +1031,11 @@ const SmartGoalsPage = () => {
                         </div>
                         <GoalDropdown
                           goal={goal}
-                          onEdit={handleEditClick}
-                          onContribute={handleContributeClick}
-                          onDelete={handleDeleteClick}
-                          onToggleActive={handleToggleActive}
-                          onShare={handleShareGoal}
+                          onEdit={handleEditClick as any}
+                          onContribute={handleContributeClick as any}
+                          onDelete={handleDeleteClick as any}
+                          onToggleActive={handleToggleActive as any}
+                          onShare={handleShareGoal as any}
                         />
                       </div>
                     </div>
